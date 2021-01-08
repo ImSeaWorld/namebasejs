@@ -1,0 +1,11 @@
+{
+  "name": "namebasejs",
+  "version": "1.0.0",
+  "description": "API wrapper for Namebase.io",
+  "main": "namebasejs/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Robert Klitsch",
+  "license": "ISC"
+}
