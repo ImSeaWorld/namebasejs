@@ -1,25 +1,27 @@
 const { API } = require('./meta.js');
-const utils = require('../utils.js');
+const utils = require('./utils.js');
 
 const VERSION = 'v0';
 const ENDPOINT = 'www.namebase.io';
 
 class NameBase {
     constructor({ AccessKey = false, SecretKey = false, Session = false }) {
-        let AUTHORIZATION;
         let COOKIES;
+        let AUTHORIZATION;
 
-        if ((!AccessKey && !SecretKey) || !Session) {
+        if (!AccessKey && !SecretKey && !Session) {
             console.log(
-                'namebasejs - Features will be limited without full authorization!!!',
+                'NameBaseJS - Features will be limited without full authorization!!!',
             );
         } else {
             if (Session) {
-                COOKIES = `namebase-main=${Session}`;
+                COOKIES = `namebase-main=${Session};`;
+                AUTHORIZATION = undefined;
             } else {
                 AUTHORIZATION =
                     'Basic ' +
                     Buffer.from(`${AccessKey}:${SecretKey}`).toString('base64');
+                COOKIES = undefined;
             }
         }
 
@@ -44,7 +46,7 @@ class NameBase {
                         utils.objSize(parameters)
                     ) {
                         return cb(
-                            `NamebaseJS Error: Too many parameters for method.`,
+                            `NameBaseJS Error: Too many parameters for method.`,
                         );
                     }
 
@@ -87,7 +89,7 @@ class NameBase {
 
                     if (missingParams.length > 0) {
                         return cb(
-                            `NamebaseJS Error: Missing "${missingParams.join(
+                            `NameBaseJS Error: Missing "${missingParams.join(
                                 '", "',
                             )}" parameter${utils.mto(
                                 missingParams,
@@ -101,11 +103,11 @@ class NameBase {
                     }
                 } else
                     return cb(
-                        `NamebaseJS Error: Method "${method}" doesn't exist!`,
+                        `NameBaseJS Error: Method "${method}" doesn't exist!`,
                     );
             } else
                 return cb(
-                    `NamebaseJS Error: Interface "${_interface}" doesn't exist!`,
+                    `NameBaseJS Error: Interface "${_interface}" doesn't exist!`,
                 );
 
             method = method.split(':')[0];
@@ -138,6 +140,24 @@ class NameBase {
                 ),
             );
 
+            var Headers = {
+                Authorization: AUTHORIZATION,
+                Cookie: COOKIES,
+                ...((method, len) => {
+                    if (method === 'POST' || method === 'PUT') {
+                        return {
+                            'Content-Type': 'application/json',
+                            'Content-Length': len,
+                        };
+                    }
+                    return {};
+                })(httpmethod, data.length),
+            };
+
+            Object.keys(Headers).forEach(
+                (key) => Headers[key] === undefined && delete Headers[key],
+            );
+
             utils.getJSON(
                 {
                     host: ENDPOINT,
@@ -151,43 +171,188 @@ class NameBase {
                     method: httpmethod,
                     encoding: 'utf8',
                     headers: {
-                        Authorization: AUTHORIZATION,
-                        Cookie: COOKIES,
-                        ...((method, len) => {
-                            if (method === 'POST' || method === 'PUT') {
-                                return {
-                                    'Content-Type': 'application/json',
-                                    'Content-Length': len,
-                                };
-                            }
-                            return {};
-                        })(httpmethod, data.length),
+                        ...Headers,
                     },
                     data: data,
                 },
-                (err, status, result) => {
+                (err, status, result, respHeaders) => {
+                    if (respHeaders['set-cookie']) {
+                        console.log(
+                            'Cookie Set Request: ',
+                            respHeaders['set-cookie'],
+                        );
+                        let index = -1;
+                        if (
+                            (index = respHeaders['set-cookie'].indexOf(
+                                'namebase-main',
+                            )) > -1
+                        ) {
+                            console.log(
+                                'Found session: ',
+                                respHeaders['set-cookie'][index],
+                            );
+                            COOKIES = respHeaders['set-cookie'][index];
+                        }
+                    }
                     return cb(err, status, result);
                 },
             );
         }
 
         return {
-            user: () => {
-                return {
-                    domains: (offset, sortKey, sortDirection, limit, cb) => {
-                        return Call(
-                            'user',
-                            'domains/not-listed',
-                            {
-                                offset: offset,
-                                sortDirection: sortDirection,
-                                sortKey: sortKey,
-                                limit: limit,
-                            },
+            user: (cb = undefined) => {
+                if (!cb) {
+                    return {
+                        // Session is needed
+                        login: (email, password, token, cb) => {
+                            return Call(
+                                'local',
+                                'account-login',
+                                {
+                                    email: email,
+                                    password: password,
+                                    token: token,
+                                },
+                                cb,
+                            );
+                        },
+                        // Session is needed
+                        logout: (cb) => Call('auth', 'logout', {}, cb),
+                        dashboard: (cb) => Call('user', 'dashboard', {}, cb),
+                        // Session is needed
+                        apiKeys: (cb = undefined) => {
+                            if (cb) {
+                                return Call('auth', 'keys', {}, cb);
+                            } else {
+                                return {
+                                    create: (name, cb) => {
+                                        return Call(
+                                            'auth',
+                                            'key:post',
+                                            { name: name },
+                                            cb,
+                                        );
+                                    },
+                                    delete: (key, cb) => {
+                                        return Call(
+                                            'auth',
+                                            'key:delete',
+                                            { accessKey: key },
+                                            cb,
+                                        );
+                                    },
+                                };
+                            }
+                        },
+                        bid: (domain, amount, blind, cb) => {
+                            return Call(
+                                'auction',
+                                '{{domain}}/bid',
+                                {
+                                    domain: domain,
+                                    bidAmount: amount,
+                                    blindAmount: blind,
+                                },
+                                cb,
+                            );
+                        },
+                        // Session is needed
+                        domains: (
+                            offset,
+                            sortKey,
+                            sortDirection,
+                            limit,
                             cb,
-                        );
-                    },
-                };
+                        ) => {
+                            return Call(
+                                'user',
+                                'domains/not-listed',
+                                {
+                                    offset: offset,
+                                    sortDirection: sortDirection,
+                                    sortKey: sortKey,
+                                    limit: limit,
+                                },
+                                cb,
+                            );
+                        },
+                        listedDomains: (
+                            offset,
+                            sortKey,
+                            sortDirection,
+                            limit,
+                            cb,
+                        ) => {
+                            return Call(
+                                'user',
+                                'domains/listed',
+                                {
+                                    offset: offset,
+                                    sortDirection: sortDirection,
+                                    sortKey: sortKey,
+                                    limit: limit,
+                                },
+                                cb,
+                            );
+                        },
+                        transferredDomains: (
+                            offset,
+                            sortKey,
+                            sortDirection,
+                            limit,
+                            cb,
+                        ) => {
+                            return Call(
+                                'user',
+                                'domains/transferred',
+                                {
+                                    offset: offset,
+                                    sortDirection: sortDirection,
+                                    sortKey: sortKey,
+                                    limit: limit,
+                                },
+                                cb,
+                            );
+                        },
+                        bids: (offset = undefined, cb = undefined) => {
+                            if (cb) {
+                                return Call(
+                                    'user',
+                                    'open-bids',
+                                    {
+                                        offset: offset,
+                                    },
+                                    cb,
+                                );
+                            } else {
+                                return {
+                                    lost: (offset, cb) =>
+                                        Call(
+                                            'user',
+                                            'open-bids',
+                                            {
+                                                offset: offset,
+                                            },
+                                            cb,
+                                        ),
+                                    revealing: (offset, cb) =>
+                                        Call(
+                                            'user',
+                                            'open-bids',
+                                            {
+                                                offset: offset,
+                                            },
+                                            cb,
+                                        ),
+                                };
+                            }
+                        },
+                        pendingHistory: (cb) =>
+                            Call('user', 'pending-history', {}, cb),
+                    };
+                } else {
+                    return Call('user', '/', {}, cb);
+                }
             },
             withdraw: (params = {}, cb = false) => {
                 if (cb) {
@@ -346,6 +511,13 @@ class NameBase {
                 } else {
                     return {
                         limits: (cb) => Call('account', 'limit', params, cb),
+                        log: (limit, cb) =>
+                            Call(
+                                'account',
+                                'log',
+                                { accountName: 'unlocked', limit: limit },
+                                cb,
+                            ),
                     };
                 }
             },

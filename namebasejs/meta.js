@@ -45,7 +45,7 @@ exports.API = {
                     parameters: [],
                 },
                 {
-                    name: 'key',
+                    name: 'key:post',
                     httpmethod: 'POST',
                     parameters: [
                         {
@@ -57,7 +57,7 @@ exports.API = {
                     ],
                 },
                 {
-                    name: 'key',
+                    name: 'key:delete',
                     httpmethod: 'DELETE',
                     parameters: [
                         {
@@ -65,6 +65,35 @@ exports.API = {
                             type: String,
                             optional: false,
                             description: 'Given access key.',
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            name: 'auction',
+            methods: [
+                {
+                    name: '{{domain}}/bid',
+                    httpmethod: 'POST',
+                    parameters: [
+                        {
+                            name: 'domain',
+                            type: String,
+                            optional: false,
+                            description: 'Domain you want to bid on',
+                        },
+                        {
+                            name: 'bidAmount',
+                            type: Number,
+                            optional: false,
+                            description: 'Bit amount in HNS',
+                        },
+                        {
+                            name: 'blindAmount',
+                            type: Number,
+                            optional: false,
+                            description: 'Blind amount in HNS',
                         },
                     ],
                 },

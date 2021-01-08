@@ -64,7 +64,7 @@ module.exports = {
                     obj = output;
                 }
 
-                onResult(undefined, res.statusCode, obj);
+                onResult(undefined, res.statusCode, obj, res.headers);
             });
         });
 
