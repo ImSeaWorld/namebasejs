@@ -1,11 +1,12 @@
 exports.API = {
     interfaces: [
         {
-            name: 'local',
+            name: 'auth',
+            disableApi: true,
             disableVersion: true,
             methods: [
                 {
-                    name: 'account-login',
+                    name: 'local/account-login',
                     httpmethod: 'POST',
                     parameters: [
                         {
@@ -23,17 +24,11 @@ exports.API = {
                         {
                             name: 'token',
                             type: String,
-                            optional: false,
+                            optional: true,
                             description: '2fa token',
                         },
                     ],
                 },
-            ],
-        },
-        {
-            name: 'auth',
-            disableVersion: true,
-            methods: [
                 {
                     name: 'logout', // sends empty body
                     httpmethod: 'POST',
@@ -372,33 +367,7 @@ exports.API = {
                 {
                     name: 'domains/listed',
                     httpmethod: 'GET',
-                    parameters: [
-                        // ?
-                        {
-                            name: 'offset',
-                            type: Number,
-                            optional: false,
-                            description: 'Paginate by nth offset',
-                        },
-                        {
-                            name: 'sortKey',
-                            type: String,
-                            optional: true,
-                            description: 'acquiredAt',
-                        },
-                        {
-                            name: 'sortDirection',
-                            type: String,
-                            optional: true,
-                            description: 'asc or desc',
-                        },
-                        {
-                            name: 'limit',
-                            type: Number,
-                            optional: true,
-                            description: 'Limit output',
-                        },
-                    ],
+                    parameters: [],
                 },
                 {
                     name: 'domains/not-listed',
@@ -435,6 +404,18 @@ exports.API = {
         {
             name: 'marketplace',
             methods: [
+                {
+                    name: '{{domain}}',
+                    httpmethod: 'GET',
+                    parameters: [
+                        {
+                            name: 'domain',
+                            type: String,
+                            optional: false,
+                            description: '',
+                        },
+                    ],
+                },
                 {
                     name: '{{domain}}/history',
                     httpmethod: 'GET',

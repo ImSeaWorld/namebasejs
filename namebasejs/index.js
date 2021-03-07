@@ -5,25 +5,16 @@ const VERSION = 'v0';
 const ENDPOINT = 'www.namebase.io';
 
 class NameBase {
-    constructor({ AccessKey = false, SecretKey = false, Session = false }) {
+    constructor({
+        AccessKey = false,
+        SecretKey = false,
+        Session = false,
+        Email = false,
+        Password = false,
+        _2fa = '',
+    } = {}) {
         let COOKIES;
         let AUTHORIZATION;
-
-        if (!AccessKey && !SecretKey && !Session) {
-            console.log(
-                'NameBaseJS - Features will be limited without full authorization!!!',
-            );
-        } else {
-            if (Session) {
-                COOKIES = `namebase-main=${Session};`;
-                AUTHORIZATION = undefined;
-            } else {
-                AUTHORIZATION =
-                    'Basic ' +
-                    Buffer.from(`${AccessKey}:${SecretKey}`).toString('base64');
-                COOKIES = undefined;
-            }
-        }
 
         function Call(_interface, method, parameters, cb) {
             let URLPath = '?';
@@ -61,6 +52,11 @@ class NameBase {
                         ) {
                             if (!apiMethod.parameters[param].optional) {
                                 if (
+                                    apiMethod.parameters[param].name ===
+                                    'offset'
+                                ) {
+                                    parameters['offset'] = 0;
+                                } else if (
                                     apiMethod.parameters[param].name ===
                                     'timestamp'
                                 ) {
@@ -123,7 +119,9 @@ class NameBase {
 
             var appendData = httpmethod === 'GET' ? URLPath : '';
 
-            URLPath = `/api${verOut}${_interface}/${method === '/' ? '' : b}${
+            URLPath = `${
+                API.interfaces[interface_key].disableApi ? '' : '/api'
+            }${verOut}${_interface}/${method === '/' ? '' : b}${
                 URLPath === '?' ? '' : appendData
             }`;
 
@@ -177,10 +175,6 @@ class NameBase {
                 },
                 (err, status, result, respHeaders) => {
                     if (respHeaders['set-cookie']) {
-                        console.log(
-                            'Cookie Set Request: ',
-                            respHeaders['set-cookie'],
-                        );
                         let index = -1;
                         if (
                             (index = respHeaders['set-cookie'].indexOf(
@@ -199,15 +193,15 @@ class NameBase {
             );
         }
 
-        return {
+        var Obj = {
             user: (cb = undefined) => {
                 if (!cb) {
                     return {
                         // Session is needed
                         login: (email, password, token, cb) => {
                             return Call(
-                                'local',
-                                'account-login',
+                                'auth',
+                                'local/account-login',
                                 {
                                     email: email,
                                     password: password,
@@ -276,24 +270,8 @@ class NameBase {
                                 cb,
                             );
                         },
-                        listedDomains: (
-                            offset,
-                            sortKey,
-                            sortDirection,
-                            limit,
-                            cb,
-                        ) => {
-                            return Call(
-                                'user',
-                                'domains/listed',
-                                {
-                                    offset: offset,
-                                    sortDirection: sortDirection,
-                                    sortKey: sortKey,
-                                    limit: limit,
-                                },
-                                cb,
-                            );
+                        listedDomains: (cb) => {
+                            return Call('user', 'domains/listed', {}, cb);
                         },
                         transferredDomains: (
                             offset,
@@ -326,7 +304,7 @@ class NameBase {
                                 );
                             } else {
                                 return {
-                                    lost: (offset, cb) =>
+                                    open: (offset, cb) =>
                                         Call(
                                             'user',
                                             'open-bids',
@@ -335,10 +313,19 @@ class NameBase {
                                             },
                                             cb,
                                         ),
+                                    lost: (offset, cb) =>
+                                        Call(
+                                            'user',
+                                            'lost-bids',
+                                            {
+                                                offset: offset,
+                                            },
+                                            cb,
+                                        ),
                                     revealing: (offset, cb) =>
                                         Call(
                                             'user',
-                                            'open-bids',
+                                            'revealing-bids',
                                             {
                                                 offset: offset,
                                             },
@@ -353,6 +340,24 @@ class NameBase {
                 } else {
                     return Call('user', '/', {}, cb);
                 }
+            },
+            domains: () => {
+                return {
+                    auction: (domain, cb) =>
+                        Call(
+                            'domains',
+                            'get/{{domain}}',
+                            { domain: domain },
+                            cb,
+                        ),
+                    watch: (domain, cb) =>
+                        Call(
+                            'domains',
+                            'watch/{{domain}}',
+                            { domain: domain },
+                            cb,
+                        ),
+                };
             },
             withdraw: (params = {}, cb = false) => {
                 if (cb) {
@@ -524,6 +529,7 @@ class NameBase {
             dns: (params = {}, cb = false) => {
                 if (cb) {
                     return Call('dns', 'domains/{{domain}}', params, cb);
+                    //{"success":true,"currentHeight":55561,"upToDate":true,"canUseSimpleUi":true,"rawNameState":"0000000000000000000000000000000000000000000000000000000","fee":"0.023415","records":[{"ttl":10800,"type":"NS","host":"ns1","value":"44.231.6.183"}]}
                 } else {
                     return {
                         set: (settings, cb) => {
@@ -575,6 +581,13 @@ class NameBase {
                     return Call('domains', 'marketplace', params, callback);
                 } else {
                     return {
+                        domain: (domain, cb) =>
+                            Call(
+                                'marketplace',
+                                '{{domain}}',
+                                { domain: domain },
+                                cb,
+                            ),
                         sold: (cb) => Call('domains', 'sold', params, cb),
                         soldByDomain: (domain, cb) =>
                             Call(
@@ -583,27 +596,26 @@ class NameBase {
                                 { domain: domain, ...params },
                                 cb,
                             ),
-                        list: (domain, amount, asset, cb) =>
+                        list: (domain, amount, description, cb) =>
                             Call(
                                 'marketplace',
                                 '{{domain}}/list',
                                 {
                                     domain: domain,
                                     amount: amount,
-                                    asset: asset,
-                                    ...params,
+                                    asset: 'HNS',
+                                    description: description,
                                 },
                                 cb,
                             ),
-                        updateListing: (domain, amount, asset, cb) =>
+                        updateListing: (domain, amount, cb) =>
                             Call(
                                 'marketplace',
                                 '{{domain}}/list',
                                 {
                                     domain: domain,
                                     amount: amount,
-                                    asset: asset,
-                                    ...params,
+                                    asset: 'HNS',
                                 },
                                 cb,
                             ),
@@ -625,6 +637,50 @@ class NameBase {
                 }
             },
         };
+
+        if (Session) {
+            COOKIES = `namebase-main=${Session};`;
+            AUTHORIZATION = undefined;
+
+            return { ...Obj };
+        } else if (AccessKey && SecretKey) {
+            AUTHORIZATION =
+                'Basic ' +
+                Buffer.from(`${AccessKey}:${SecretKey}`).toString('base64');
+            COOKIES = undefined;
+
+            return { ...Obj };
+        } else if (Email && Password) {
+            Call(
+                'auth',
+                'local/account-login',
+                {
+                    email: Email,
+                    password: Password,
+                    token: _2fa,
+                },
+                (err, status, resp) => {
+                    if (err) {
+                        console.error(err);
+                        return;
+                    }
+
+                    if (status === 200) {
+                        console.log(COOKIES);
+                        // should be logged in
+
+                        return { ...Obj };
+                    }
+                },
+            );
+            //self.user.login();
+        } else {
+            console.log(
+                'NameBaseJS - Features will be limited without full authorization!!!',
+            );
+
+            return { ...Obj };
+        }
     }
 }
 
