@@ -203,84 +203,6 @@ class NameBase {
         },
     };
 
-    Domains = {
-        Popular: (offset = 0) => {
-            return this.Call(
-                'domains',
-                'popular',
-                'GET',
-                { offset: offset },
-                true,
-            );
-        },
-
-        RecentlyWon: (offset = 0) => {
-            return this.Call(
-                'domains',
-                'recently-won',
-                'GET',
-                { offset: offset },
-                true,
-            );
-        },
-
-        EndingSoon: (offset = 0) => {
-            return this.Call(
-                'domains',
-                'ending-soon',
-                'GET',
-                { offset: offset },
-                true,
-            );
-        },
-
-        Anticipated: (offset = 0) => {
-            return this.Call(
-                'domains',
-                'anticipated',
-                'GET',
-                { offset: offset },
-                true,
-            );
-        },
-
-        Sold: (sortKey, sortDirection) => {
-            return this.Call(
-                'domains',
-                'sold',
-                'GET',
-                { sortKey: sortKey, sortDirection: sortDirection },
-                true,
-            );
-        },
-
-        Marketplace: (
-            offset,
-            sortKey,
-            sortDirection,
-            firstCharacter,
-            maxPrice,
-            maxLength,
-            onlyPuny,
-        ) => {
-            return this.Call(
-                'domains',
-                'sold',
-                'GET',
-                {
-                    offset: offset,
-                    sortKey: sortKey,
-                    sortDirection: sortDirection,
-                    firstCharacter: firstCharacter,
-                    maxPrice: maxPrice,
-                    maxLength: maxLength,
-                    onlyPuny: onlyPuny,
-                },
-                true,
-            );
-        },
-    };
-
     User = {
         Self: () => {
             return this.Call('user', '/', 'GET', {}, true);
@@ -720,6 +642,84 @@ class NameBase {
                 endTime: endTime,
                 limit: limit,
             });
+        },
+    };
+
+    Domains = {
+        Popular: (offset = 0) => {
+            return this.Call(
+                'domains',
+                'popular',
+                'GET',
+                { offset: offset },
+                true,
+            );
+        },
+
+        RecentlyWon: (offset = 0) => {
+            return this.Call(
+                'domains',
+                'recently-won',
+                'GET',
+                { offset: offset },
+                true,
+            );
+        },
+
+        EndingSoon: (offset = 0) => {
+            return this.Call(
+                'domains',
+                'ending-soon',
+                'GET',
+                { offset: offset },
+                true,
+            );
+        },
+
+        Anticipated: (offset = 0) => {
+            return this.Call(
+                'domains',
+                'anticipated',
+                'GET',
+                { offset: offset },
+                true,
+            );
+        },
+
+        Sold: (sortKey, sortDirection) => {
+            return this.Call(
+                'domains',
+                'sold',
+                'GET',
+                { sortKey: sortKey, sortDirection: sortDirection },
+                true,
+            );
+        },
+
+        Marketplace: (
+            offset,
+            sortKey,
+            sortDirection,
+            firstCharacter,
+            maxPrice,
+            maxLength,
+            onlyPuny,
+        ) => {
+            return this.Call(
+                'domains',
+                'sold',
+                'GET',
+                {
+                    offset: offset,
+                    sortKey: sortKey,
+                    sortDirection: sortDirection,
+                    firstCharacter: firstCharacter,
+                    maxPrice: maxPrice,
+                    maxLength: maxLength,
+                    onlyPuny: onlyPuny,
+                },
+                true,
+            );
         },
     };
 
