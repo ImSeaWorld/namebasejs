@@ -24,7 +24,7 @@ nb.Call('user', 'open-bids', 'GET', { offset: 0 }, true)
 {
   serverTime: 1610237284223,
   email: 'email@email.com',
-  segmentUuid: '28431023-29c0-4cb8-0f02-f92cd4fd5b6q',
+  segmentUuid: '28FF10FF-FFFF-4cb8-FFFF-FFFFd4fdFFFF',
   custodian: 'us',
   hns_balance: '1277956591',
   usd_balance: '0',
