@@ -1,6 +1,6 @@
 # NameBaseJS `1.1.0`
 
-Promise based namebase.io API wrapper for my application Black Mamba.
+Promise based [namebase.io](https://namebase.io) API wrapper for my application [Black Mamba](https://github.com/ImSeaWorld/Black-Mamba).
 
 ## Examples of some methods and results you should expect
 
