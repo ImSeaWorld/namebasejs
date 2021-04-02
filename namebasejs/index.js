@@ -43,6 +43,7 @@ class NameBase {
         parameters,
         disableVersion = false,
         disableApi = false,
+        disableOffset = false,
     ) {
         return new Promise((res, rej) => {
             var URLPath = `?`;
@@ -51,7 +52,7 @@ class NameBase {
 
             // Build URL structure
             for (var key in parameters) {
-                if (key === 'domain' || key === 'offset') {
+                if (key === 'domain' || (key === 'offset' && !disableOffset)) {
                     continue;
                 }
 
@@ -61,7 +62,7 @@ class NameBase {
             var API = disableApi ? '' : '/api';
             var Version = disableVersion ? '/' : `/${VERSION}/`;
             var Offset =
-                parameters.offset != undefined
+                parameters.offset != undefined && !disableOffset
                     ? `${method}/${parameters.offset}`
                     : method;
 
@@ -164,7 +165,12 @@ class NameBase {
                                 }
                             }
                         }
-                        resolve({ data, status, rawheaders });
+                        resolve({
+                            data,
+                            status,
+                            rawheaders,
+                            session: this._auth.session,
+                        });
                     })
                     .catch((e) => reject(e));
             });
@@ -180,14 +186,7 @@ class NameBase {
             },
 
             Create: (name) => {
-                return this.Call(
-                    'auth',
-                    'key',
-                    'POST',
-                    { name: name },
-                    true,
-                    true,
-                );
+                return this.Call('auth', 'key', 'POST', { name }, true, true);
             },
 
             Delete: (AccessKey) => {
@@ -216,16 +215,21 @@ class NameBase {
             return this.Call('user', 'pending-history', 'GET', {}, true);
         },
 
-        Domains: ({ offset, sortKey, sortDirection, limit }) => {
+        Domains: ({
+            offset = 0,
+            sortKey = 'acquiredAt',
+            sortDirection = 'desc',
+            limit = 100,
+        }) => {
             return this.Call(
                 'user',
                 'domains/not-listed',
                 'GET',
                 {
-                    offset: offset,
-                    sortKey: sortKey,
-                    sortDirection: sortDirection,
-                    limit: limit,
+                    offset,
+                    sortKey,
+                    sortDirection,
+                    limit,
                 },
                 true,
             );
@@ -237,10 +241,10 @@ class NameBase {
                 'domains/transferred',
                 'GET',
                 {
-                    offset: offset,
-                    sortKey: sortKey,
-                    sortDirection: sortDirection,
-                    limit: limit,
+                    offset,
+                    sortKey,
+                    sortDirection,
+                    limit,
                 },
                 true,
             );
@@ -257,24 +261,44 @@ class NameBase {
         Offers: {
             // Expected Reply
             // { success: bool, totalCount: int, domains: obj }
-            Recieved: ({
-                Offset = 0,
-                sKey = 'createdAt',
-                sDirection = 'desc',
+            Received: ({
+                offset = 0,
+                sortKey = 'createdAt',
+                sortDirection = 'desc',
             }) => {
-                return this.Call('offers', 'recieved', 'GET', {
-                    offset: Offset,
-                    sortKey: sKey,
-                    sortDirection: sDirection,
-                });
+                return this.Call(
+                    'offers',
+                    'received',
+                    'GET',
+                    {
+                        offset,
+                        sortKey,
+                        sortDirection,
+                    },
+                    false,
+                    false,
+                    true,
+                );
             },
 
-            Sent: ({ Offset = 0, sKey = 'createdAt', sDirection = 'desc' }) => {
-                return this.Call('offers', 'recieved', 'GET', {
-                    offset: Offset,
-                    sortKey: sKey,
-                    sortDirection: sDirection,
-                });
+            Sent: ({
+                offset = 0,
+                sortKey = 'createdAt',
+                sortDirection = 'desc',
+            }) => {
+                return this.Call(
+                    'offers',
+                    'sent',
+                    'GET',
+                    {
+                        offset,
+                        sortKey,
+                        sortDirection,
+                    },
+                    false,
+                    false,
+                    true,
+                );
             },
 
             Notification: () => {
@@ -284,23 +308,11 @@ class NameBase {
 
         Bids: {
             Open: (offset = 0) => {
-                return this.Call(
-                    'user',
-                    'open-bids',
-                    'GET',
-                    { offset: offset },
-                    true,
-                );
+                return this.Call('user', 'open-bids', 'GET', { offset }, true);
             },
 
             Lost: (offset = 0) => {
-                return this.Call(
-                    'user',
-                    'lost-bids',
-                    'GET',
-                    { offset: offset },
-                    true,
-                );
+                return this.Call('user', 'lost-bids', 'GET', { offset }, true);
             },
 
             Revealing: (offset = 0) => {
@@ -308,7 +320,7 @@ class NameBase {
                     'user',
                     'revealing-bids',
                     'GET',
-                    { offset: offset },
+                    { offset },
                     true,
                 );
             },
@@ -321,8 +333,8 @@ class NameBase {
             timestamp = new Date().getTime(),
         } = {}) => {
             return this.Call('account', '/', 'GET', {
-                receiveWindow: receiveWindow,
-                timestamp: timestamp,
+                receiveWindow,
+                timestamp,
             });
         },
 
@@ -331,15 +343,15 @@ class NameBase {
             timestamp = new Date().getTime(),
         } = {}) => {
             return this.Call('account', 'limits', 'GET', {
-                receiveWindow: receiveWindow,
-                timestamp: timestamp,
+                receiveWindow,
+                timestamp,
             });
         },
 
         Log: ({ accountName = 'unlocked', limit = 10 } = {}) => {
             return this.Call('account', 'log', 'GET', {
-                accountName: accountName,
-                limit: limit,
+                accountName,
+                limit,
             });
         },
 
@@ -350,9 +362,9 @@ class NameBase {
                 receiveWindow = 10000,
             } = {}) => {
                 return this.Call('deposit', 'address', 'POST', {
-                    asset: asset,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    asset,
+                    timestamp,
+                    receiveWindow,
                 });
             },
 
@@ -364,11 +376,11 @@ class NameBase {
                 receiveWindow = 10000,
             } = {}) => {
                 return this.Call('deposit', 'history', 'GET', {
-                    asset: asset,
-                    startTime: startTime,
-                    endTime: endTime,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    asset,
+                    startTime,
+                    endTime,
+                    timestamp,
+                    receiveWindow,
                 });
             },
         },
@@ -382,11 +394,11 @@ class NameBase {
                 receiveWindow = 10000,
             } = {}) => {
                 return this.Call('withdraw', '/', 'POST', {
-                    asset: asset,
-                    address: address,
-                    amount: amount,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    asset,
+                    address,
+                    amount,
+                    timestamp,
+                    receiveWindow,
                 });
             },
 
@@ -398,11 +410,11 @@ class NameBase {
                 receiveWindow = 10000,
             } = {}) => {
                 return this.Call('withdraw', 'history', 'GET', {
-                    asset: asset,
-                    startTime: startTime,
-                    endTime: endTime,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    asset,
+                    startTime,
+                    endTime,
+                    timestamp,
+                    receiveWindow,
                 });
             },
         },
@@ -411,7 +423,7 @@ class NameBase {
     Auction = {
         Bid: (domain, bid, blind) => {
             return this.Call('auction', '{{domain}}/bid', 'POST', {
-                domain: domain,
+                domain,
                 bidAmount: bid,
                 blindAmount: blind,
             });
@@ -421,34 +433,34 @@ class NameBase {
     Marketplace = {
         Domain: (domain) => {
             return this.Call('marketplace', '{{domain}}', 'GET', {
-                domain: domain,
+                domain,
             });
         },
 
         History: (domain) => {
             return this.Call('marketplace', '{{domain}}/history', 'GET', {
-                domain: domain,
+                domain,
             });
         },
 
         List: (domain, amount, description, asset = 'HNS') => {
             return this.Call('marketplace', '{{domain}}', 'POST', {
-                domain: domain,
-                amount: amount,
-                description: description,
-                asset: asset,
+                domain,
+                amount,
+                description,
+                asset,
             });
         },
 
         CancelListing: (domain) => {
             return this.Call('marketplace', '{{domain}}/cancel', 'POST', {
-                domain: domain,
+                domain,
             });
         },
 
         BuyNow: (domain) => {
             return this.Call('marketplace', '{{domain}}/buynow', 'POST', {
-                domain: domain,
+                domain,
             });
         },
     };
@@ -461,10 +473,10 @@ class NameBase {
             limit = 30,
         } = {}) => {
             return this.Call('trade', '/', 'GET', {
-                symbol: symbol,
-                timestamp: timestamp,
-                receiveWindow: receiveWindow,
-                limit: limit,
+                symbol,
+                timestamp,
+                receiveWindow,
+                limit,
             });
         },
 
@@ -473,15 +485,15 @@ class NameBase {
             receiveWindow = 10000,
         } = {}) => {
             return this.Call('trade', 'account', 'GET', {
-                timestamp: timestamp,
-                receiveWindow: receiveWindow,
+                timestamp,
+                receiveWindow,
             });
         },
 
         Depth: ({ symbol = 'HNSBTC', limit = 100 } = {}) => {
             return this.Call('depth', '/', 'GET', {
-                symbol: symbol,
-                limit: limit,
+                symbol,
+                limit,
             });
         },
 
@@ -493,10 +505,10 @@ class NameBase {
                 timestamp = new Date().getTime(),
             } = {}) => {
                 return this.Call('trade', 'order', 'GET', {
-                    symbol: symbol,
-                    orderId: orderId,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    symbol,
+                    orderId,
+                    timestamp,
+                    receiveWindow,
                 });
             },
 
@@ -510,13 +522,13 @@ class NameBase {
                 receiveWindow = 10000,
             } = {}) => {
                 return this.Call('order', '/', 'POST', {
-                    symbol: symbol,
-                    side: side,
-                    type: type,
-                    quantity: quantity,
-                    price: price,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    symbol,
+                    side,
+                    type,
+                    quantity,
+                    price,
+                    timestamp,
+                    receiveWindow,
                 });
             },
 
@@ -527,10 +539,10 @@ class NameBase {
                 timestamp = new Date().getTime(),
             } = {}) => {
                 return this.Call('order', '/', 'delete', {
-                    symbol: symbol,
-                    orderId: orderId,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    symbol,
+                    orderId,
+                    timestamp,
+                    receiveWindow,
                 });
             },
 
@@ -540,10 +552,10 @@ class NameBase {
                 timestamp = new Date().getTime(),
             } = {}) => {
                 return this.Call('order', 'open', 'GET', {
-                    symbol: symbol,
-                    orderId: orderId,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    symbol,
+                    orderId,
+                    timestamp,
+                    receiveWindow,
                 });
             },
 
@@ -555,11 +567,11 @@ class NameBase {
                 timestamp = new Date().getTime(),
             } = {}) => {
                 return this.Call('order', 'all', 'GET', {
-                    symbol: symbol,
-                    orderId: orderId,
-                    limit: limit,
-                    timestamp: timestamp,
-                    receiveWindow: receiveWindow,
+                    symbol,
+                    orderId,
+                    limit,
+                    timestamp,
+                    receiveWindow,
                 });
             },
         },
@@ -568,35 +580,35 @@ class NameBase {
     DNS = {
         Get: (domain) => {
             return this.Call('dns', 'domains/{{domain}}', 'GET', {
-                domain: domain,
+                domain,
             });
         },
         // Record[] { ENUM type, STRING host, STRING value, INTEGER ttl }
         Set: (domain, records) => {
             return this.Call('dns', 'domains/{{domain}}', 'PUT', {
-                domain: domain,
-                records: records,
+                domain,
+                records,
             });
         },
         // rawNameState needs to be HEX of the DNS records
         AdvancedSet: (domain, rawNameState) => {
             return this.Call('dns', 'domains/{{domain}}/advanced', 'PUT', {
-                domain: domain,
-                rawNameState: rawNameState,
+                domain,
+                rawNameState,
             });
         },
 
         NameServers: (domain) => {
             return this.Call('dns', 'domains/{{domain}}/nameserver', 'GET', {
-                domain: domain,
+                domain,
             });
         },
 
         SetNameServers: (domain, records, deleteRecords) => {
             return this.Call('dns', 'domains/{{domain}}/nameserver', 'PUT', {
-                domain: domain,
-                records: records,
-                deleteRecords: deleteRecords,
+                domain,
+                records,
+                deleteRecords,
             });
         },
     };
@@ -613,19 +625,19 @@ class NameBase {
 
     Ticker = {
         Day: (symbol = 'HNSBTC') => {
-            return this.Call('ticker', 'day', 'GET', { symbol: symbol });
+            return this.Call('ticker', 'day', 'GET', { symbol });
         },
 
         Book: (symbol = 'HNSBTC') => {
-            return this.Call('ticker', 'book', 'GET', { symbol: symbol });
+            return this.Call('ticker', 'book', 'GET', { symbol });
         },
 
         Price: (symbol = 'HNSBTC') => {
-            return this.Call('ticker', 'price', 'GET', { symbol: symbol });
+            return this.Call('ticker', 'price', 'GET', { symbol });
         },
 
         Supply: (symbol = 'HNSBTC') => {
-            return this.Call('ticker', 'supply', 'GET', { symbol: symbol });
+            return this.Call('ticker', 'supply', 'GET', { symbol });
         },
 
         Klines: ({
@@ -636,24 +648,18 @@ class NameBase {
             limit = 100,
         } = {}) => {
             return this.Call('ticker', 'klines', 'GET', {
-                symbol: symbol,
-                interval: interval,
-                startTime: startTime,
-                endTime: endTime,
-                limit: limit,
+                symbol,
+                interval,
+                startTime,
+                endTime,
+                limit,
             });
         },
     };
 
     Domains = {
         Popular: (offset = 0) => {
-            return this.Call(
-                'domains',
-                'popular',
-                'GET',
-                { offset: offset },
-                true,
-            );
+            return this.Call('domains', 'popular', 'GET', { offset }, true);
         },
 
         RecentlyWon: (offset = 0) => {
@@ -661,29 +667,17 @@ class NameBase {
                 'domains',
                 'recently-won',
                 'GET',
-                { offset: offset },
+                { offset },
                 true,
             );
         },
 
         EndingSoon: (offset = 0) => {
-            return this.Call(
-                'domains',
-                'ending-soon',
-                'GET',
-                { offset: offset },
-                true,
-            );
+            return this.Call('domains', 'ending-soon', 'GET', { offset }, true);
         },
 
         Anticipated: (offset = 0) => {
-            return this.Call(
-                'domains',
-                'anticipated',
-                'GET',
-                { offset: offset },
-                true,
-            );
+            return this.Call('domains', 'anticipated', 'GET', { offset }, true);
         },
 
         Sold: (sortKey, sortDirection) => {
@@ -691,7 +685,7 @@ class NameBase {
                 'domains',
                 'sold',
                 'GET',
-                { sortKey: sortKey, sortDirection: sortDirection },
+                { sortKey, sortDirection },
                 true,
             );
         },
@@ -710,13 +704,13 @@ class NameBase {
                 'sold',
                 'GET',
                 {
-                    offset: offset,
-                    sortKey: sortKey,
-                    sortDirection: sortDirection,
-                    firstCharacter: firstCharacter,
-                    maxPrice: maxPrice,
-                    maxLength: maxLength,
-                    onlyPuny: onlyPuny,
+                    offset,
+                    sortKey,
+                    sortDirection,
+                    firstCharacter,
+                    maxPrice,
+                    maxLength,
+                    onlyPuny,
                 },
                 true,
             );
@@ -724,13 +718,7 @@ class NameBase {
     };
 
     Domain(domain) {
-        return this.Call(
-            'domains',
-            'get/{{domain}}',
-            'GET',
-            { domain: domain },
-            true,
-        );
+        return this.Call('domains', 'get/{{domain}}', 'GET', { domain }, true);
     }
     // Toggles
     WatchDomain(domain) {
@@ -738,7 +726,7 @@ class NameBase {
             'domains',
             'watch/{{domain}}',
             'GET',
-            { domain: domain },
+            { domain },
             true,
         );
     }
