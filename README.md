@@ -2,6 +2,10 @@
 
 Promise based [namebase.io](https://namebase.io) API wrapper for my application [Black Mamba](https://github.com/ImSeaWorld/Black-Mamba).
 
+```
+npm install namebasejs --save
+```
+
 ## Examples of some methods and results you should expect
 
 #### nb.Call(interface, method, httpmethod, parameters, disableVersion, disableApi, disableOffset) `Returns: Promise`
