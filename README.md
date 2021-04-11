@@ -1,274 +1,138 @@
-# NameBaseJS `1.1.0`
+# NameBaseJS `1.1.1`
 
 Promise based [namebase.io](https://namebase.io) API wrapper for my application [Black Mamba](https://github.com/ImSeaWorld/Black-Mamba).
+
+# Usage
 
 ```
 npm install namebasejs --save
 ```
 
-## Examples of some methods and results you should expect
-
-#### nb.Call(interface, method, httpmethod, parameters, disableVersion, disableApi, disableOffset) `Returns: Promise`
+You can get your session from the network tab of Inspect Element under `namebase-main`. Copy everything after the `=`. Although, you don't need to instantiate `namebasejs` with a session, you can also use the local login which will store the session from your login in `_auth`.
 
 ```javascript
-const nb = new (require('namebasejs'))({ Session: 'SESSION_KEY' });
-// Base function to call directly to NameBase
-nb.Call('user', 'open-bids', 'GET', { offset: 0 }, true)
-    .then(({ data, status, rawheaders }) => {
-        if (data.success) {
-            console.log(data);
-        }
+const nb = new (require('namebasejs'))();
+
+nb.Auth.Login({ Email: 'email@email.com', Password: 'password' })
+    .then(({ data, status, rawheaders, session }) => {
+        console.log('My current session: ', session);
+    })
+    .then(() => {
+        nb.User.Self().then(({ data, status, rawheaders }) => {
+            console.log('Current HNS Balance: ', data.hns_balance / 1000000); // convert little to big
+        });
     })
     .catch((e) => console.error(e));
 ```
 
-#### nb.User.Self() `Returns: Promise`
+Any parameter with a `?` should be considered optional.
 
-```javascript
-{
-  serverTime: 1610237284223,
-  email: 'email@email.com',
-  segmentUuid: '28FF10FF-FFFF-4cb8-FFFF-FFFFd4fdFFFF',
-  custodian: 'us',
-  hns_balance: '1277956591',
-  usd_balance: '0',
-  verificationStatus: 'VERIFIED',
-  canLinkBank: true,
-  canUseConsumerHnsBtc: false,
-  canUseConsumerBtcHns: true,
-  canUseConsumerHnsUsd: true,
-  canUseConsumerUsdHns: true,
-  canUseProExchange: false,
-  fullName: 'FULL NAME',
-  isNewYork: false
-}
-```
+## Auth
 
-#### nb.User.Dashboard() `Returns: Promise`
+-   `nb.Auth.Login({ Email, Password, Token })`
+-   `nb.Auth.Logout()`
 
-```javascript
- {
-  success: true,
-  height: 49788,
-  messages: [],
-  ongoingBids: { totalCount: 3, highlights: [ [Object], [Object] ] },
-  revealingBids: { totalCount: 292, highlights: [ [Object], [Object] ] },
-  watchlist: { totalCount: 126, highlights: [ [Object], [Object] ] },
-  userDomains: { totalCount: 2, highlights: [ [Object], [Object] ] },
-  lockedHns: '1321611785'
-}
-```
+#### Auth.API
 
-#### nb.User.Domains({ offset, sortKey, sortDirection, limit }) `Returns: Promise`
+-   `nb.Auth.API.Keys()`
+-   `nb.Auth.API.Create(name)`
+-   `nb.Auth.API.Delete(AccessKey)`
 
-```javascript
-{
-  success: true,
-  currentHeight: 49788,
-  domains: [
-    {
-      name: 'bitch',
-      renewalBlock: 143286,
-      upToDate: true,
-      numberViews: 11,
-      usesOurNameservers: true
-    },
-  ],
-  totalCount: 1
-}
-```
+## User
 
-#### nb.User.TransferredDomains({ offset, sortKey, sortDirection, limit }) `Returns: Promise`
+-   `nb.User.Self()`
+-   `nb.User.Dashboard()`
+-   `nb.User.PendingHistory()`
+-   `nb.User.Domains({ offset?, sortKey?, sortDirection?, limit? })`
+-   `nb.User.TransferredDomains({ offset, sortKey, sortDirection, limit })`
+-   `nb.User.ListedDomains()`
+-   `nb.User.MFA()`
 
-```javascript
-{
-  success: true,
-  currentHeight: 61643,
-  transferred: []
-}
-```
+#### User.Offers
 
-#### nb.User.ListedDomains() `Returns: Promise`
+-   `nb.User.Offers.Sent({ offset?, sortKey?, sortDirection? })`
+-   `nb.User.Offers.Received({ offset?, sortKey?, sortDirection? })`
+-   `nb.User.Offers.Notification()`
 
-```javascript
-{
-  success: true,
-  currentHeight: 49788,
-  domains: [
-    {
-      name: 'bitch',
-      amount: '35000000',
-      asset: 'HNS',
-      renewalBlock: 143286,
-      upToDate: true
-    }
-  ]
-}
-```
+### User.Bids
 
-#### nb.User.MFA() `Returns: Promise`
+-   `nb.User.Bids.Open(offset?)`
+-   `nb.User.Bids.Lost(offset?)`
+-   `nb.User.Bids.Revealing(offset?)`
 
-```javascript
-{
-  success: true,
-  hasSetUpMfa: true
-}
-```
+## Account
 
-#### nb.User.Offers.Received({ offset, sortKey, sortDirection }) `Returns: Promise`
+-   `nb.Account.Log({ accountName?, limit? })`
+-   [`nb.Account.Self({ receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-information)
+-   [`nb.Account.Limits({ receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-withdrawal-limits)
 
-```javascript
-{
-  success: true,
-  totalCount: 1,
-  domains: [
-    {
-      domain: 'slutty',
-      highestCurrentOffer: '1.000000',
-      numberNegotiations: 2,
-      isUnseen: false,
-      domainOwnerId: 'FYSZJ4zOxSmUcFmYkHdksA'
-    },
-  ]
-}
-```
+#### Account.Deposit
 
-#### nb.User.Offers.Sent({ offset, sortKey, sortDirection }) `Returns: Promise`
+-   [`nb.Account.Deposit.Address({ asset?, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#deposit-address)
+-   [`nb.Account.Deposit.History({ asset?, startTime, endTime, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#deposit-history)
 
-```javascript
-{
-  success: true,
-  totalCount: 1,
-  domains: [
-    {
-      domain: 'biggiesmalls',
-      highestCurrentOffer: '1.000000',
-      isUnseen: true,
-      domainOwnerId: 'be2wvMltQeW42WzMXMGSDQ'
-    }
-  ]
-}
-```
+#### Account.Withdraw
 
-#### nb.User.Offers.Notification() `Returns: Promise`
+-   [`nb.Account.Withdraw.Asset({ asset?, address, amount, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#withdraw)
+-   [`nb.Account.Withdraw.History({ asset?, startTime, endTime, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#withdraw-history)
 
-```javascript
-{
-  success: true,
-  isUnseen: true
-}
-```
+## Auction
 
-#### nb.User.Bids.Open(offset) `Returns: Promise`
+-   `nb.Auction.Bid(domain, bid, blind)`
 
-```javascript
-{
-  success: true,
-  height: 61647,
-  openBids: []
-}
-```
+## Marketplace
 
-#### nb.User.Bids.Lost(offset) `Returns: Promise`
+-   `nb.Marketplace.Domain(domain)`
+-   [`nb.Marketplace.History(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#domain-sale-history)
+-   [`nb.Marketplace.List(domain, amount, description, asset?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#list-name--update-listing)
+-   [`nb.Marketplace.CancelListing(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#cancel-listing)
+-   [`nb.Marketplace.BuyNow(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#purchase-name)
 
-```javascript
-{
-  success: true,
-  height: 61647,
-  lostBids: [
-    { domain: 'baldhead', data: [Object] },
-  ]
-}
-```
+## Trade
 
-#### nb.User.Bids.Revealing(offset) `Returns: Promise`
+-   [`nb.Trade.History({ symbol?, timestamp?, receiveWindow?, limit? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#trade-lookup)
+-   [`nb.Trade.Account({ timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-trade-list)
+-   [`nb.Trade.Depth({ symbol?, limit? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#order-book)
 
-```javascript
-{
-  success: true,
-  height: 61647,
-  revealingBids: []
-}
-```
+#### Trade.Order
 
-#### nb.Account.Self({ receiveWindow, timestamp }) `Returns: Promise`
+-   [`nb.Trade.Order.Get({ symbol?, orderId, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#order-trade-list)
+-   [`nb.Trade.Order.New({ symbol?, side, type, quantity, price, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#new-order)
+-   [`nb.Trade.Order.All({ symbol?, orderId, limit?, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#all-orders)
+-   [`nb.Trade.Order.Open({ symbol?, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#current-open-orders)
+-   [`nb.Trade.Order.Delete({ symbol?, orderId, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#cancel-order)
 
-```javascript
-{
-  makerFee: 0,
-  takerFee: 10,
-  canTrade: false,
-  balances: [
-    {
-      asset: 'HNS',
-      unlocked: '1.000000',
-      lockedInOrders: '0.000000',
-      canDeposit: true,
-      canWithdraw: false
-    },
-    {
-      asset: 'BTC',
-      unlocked: '0.00000000',
-      lockedInOrders: '0.00000000',
-      canDeposit: false,
-      canWithdraw: false
-    }
-  ]
-}
-```
+## DNS
 
-#### nb.Account.Limits({ receiveWindow, timestamp }) `Returns: Promise`
+-   [`nb.DNS.Get(domain)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#get-settings)
+-   [`nb.DNS.Set(domain, records)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings)
+-   [`nb.DNS.AdvancedSet(domain, rawNameState)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings-advanced)
+-   [`nb.DNS.NameServers(domain)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#get-settings-1)
+-   [`nb.DNS.SetNameServers(domain, records, deleteRecords)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings-1)
 
-```javascript
-{
-  startTime: 1617266355034,
-  endTime: 1617352754034,
-  withdrawalLimits: [
-    {
-      asset: 'HNS',
-      totalWithdrawn: '0.000000',
-      withdrawalLimit: '0.000000'
-    },
-    {
-      asset: 'BTC',
-      totalWithdrawn: '0.00000000',
-      withdrawalLimit: '0.00000000'
-    }
-  ]
-}
-```
+## Fiat
 
-#### nb.Account.Log() `Returns: Promise`
+-   `nb.Fiat.Accounts()`
+-   `nb.Fiat.Transfers()`
 
-```javascript
-{
-  success: true,
-  currency: 'hns',
-  entries: [
-    {
-      continuationId: 'ffffffffffffffffffffffffffffffff',
-      label: 'registerBid',
-      labelData: [Object],
-      amount: '31000001',
-      createdAt: '2021-03-07T05:53:24.816Z',
-      path: '/domain-manager/DOMAIN'
-    },
-  ]
-}
-```
+## Ticker
 
-#### nb.Account.Deposit.Address({ asset, timestamp, receiveWindow }) `Returns: Promise`
+-   [`nb.Ticker.Day(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#24hr-ticker-price-change-statistics)
+-   [`nb.Ticker.Book(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#symbol-order-book-ticker)
+-   [`nb.Ticker.Price(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#symbol-price-ticker)
+-   [`nb.Ticker.Supply(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#circulating-supply-ticker)
+-   [`nb.Ticker.Klines({ symbol?, interval?, startTime, endTime, limit? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#kline-data)
 
-```javascript
-{
-  address: 'hs1q4tasjv2l2hdrhq0yjff5c4d5st6q9q0dss49sr',
-  asset: 'HNS',
-  success: true
-}
-```
+## Domains
 
-#### nb.Account.Deposit.History({ asset, startTime, endTime, timestamp, receiveWindow }) `Returns: Promise`
+-   `nb.Domains.Popular(offset?)`
+-   `nb.Domains.RecentlyWon(offset?)`
+-   `nb.Domains.EndingSoon(offset?)`
+-   `nb.Domains.Anticipated(offset?)`
+-   [`nb.Domains.Sold(sortKey, sortDirection)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#all-sale-history)
+-   [`nb.Domains.Marketplace(offset, sortKey, sortDirection, firstCharacter, maxPrice, maxLength, onlyPuny)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#marketplace-listings)
 
-```javascript
-[];
-```
+## Misc
+
+-   `nb.Domain(Domain)`
+-   `nb.WatchDomain(Domain)`
