@@ -5,7 +5,7 @@ const ENDPOINT = 'www.namebase.io';
 
 class NameBase {
     _auth = {};
-    AssetMeta = {
+    _enums = {
         Assets: { HNS: 'HNS', BTC: 'BTC' },
         Symbols: { HNSBTC: 'HNSBTC' },
         OrderTypes: { LMT: 'LMT', MKT: 'MKT' },
@@ -25,8 +25,7 @@ class NameBase {
     constructor({ aKey, sKey, Session } = {}) {
         if (aKey && sKey) {
             this._auth.key =
-                'Basic ' +
-                Buffer.from(`${AccessKey}:${SecretKey}`).toString('base64');
+                'Basic ' + Buffer.from(`${aKey}:${sKey}`).toString('base64');
         } else if (Session) {
             this._auth.session = 'namebase-main=' + Session;
         } else {
@@ -701,7 +700,7 @@ class NameBase {
         ) => {
             return this.Call(
                 'domains',
-                'sold',
+                'markeplace',
                 'GET',
                 {
                     offset,
