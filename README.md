@@ -50,10 +50,10 @@ All methods return `Promise({data, status, rawHeaders})`, the example above is h
 
 -   `nb.User.Self()`
 -   `nb.User.Dashboard()` -- Deprecated by NameBase
--   `nb.User.Wallet()`
--   `nb.User.DomainSummary()`
--   `nb.User.Messages()`
--   `nb.User.ReferralStats(limit?)`
+-   `nb.User.Wallet()` - `1.1.2`
+-   `nb.User.DomainSummary()` - `1.1.2`
+-   `nb.User.Messages()` - `1.1.2`
+-   `nb.User.ReferralStats(limit?)` - `1.1.2`
 -   `nb.User.PendingHistory()`
 -   `nb.User.Domains({ offset?, sortKey?, sortDirection?, limit? })`
 -   `nb.User.TransferredDomains({ offset, sortKey, sortDirection, limit })`
@@ -66,11 +66,11 @@ All methods return `Promise({data, status, rawHeaders})`, the example above is h
 -   `nb.User.Offers.Received({ offset?, sortKey?, sortDirection? })`
 -   `nb.User.Offers.Notification()`
 
-#### User.Offers.Inbox
+#### User.Offers.Inbox - `1.1.2`
 
--   `nb.User.Offers.Inbox.Received()`
+-   `nb.User.Offers.Inbox.Received()` - `1.1.2`
 
-### User.Bids
+#### User.Bids
 
 -   `nb.User.Bids.Open(offset?)`
 -   `nb.User.Bids.Lost(offset?)`
