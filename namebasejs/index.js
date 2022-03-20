@@ -4,7 +4,10 @@ const VERSION = 'v0';
 const ENDPOINT = 'www.namebase.io';
 
 class NameBase {
-    _auth = {};
+    _auth = {
+        key: null,
+        session: null,
+    };
     _enums = {
         Assets: { HNS: 'HNS', BTC: 'BTC' },
         Symbols: { HNSBTC: 'HNSBTC' },
@@ -158,9 +161,10 @@ class NameBase {
                                         'namebase-main',
                                     ) > -1
                                 ) {
-                                    this._auth.session = rawheaders[
-                                        'set-cookie'
-                                    ][key].split(' ')[0];
+                                    this._auth.session =
+                                        rawheaders['set-cookie'][key].split(
+                                            ' ',
+                                        )[0];
                                 }
                             }
                         }
@@ -207,19 +211,45 @@ class NameBase {
         },
 
         Dashboard: () => {
-            return this.Call('user', 'dashboard', 'GET', {}, true);
+            // Deprecated
+            //return this.Call('user', 'dashboard', 'GET', {}, true);
+            throw new Error('Dashboard has been deprecated by Namebase');
+        },
+
+        Wallet: () => {
+            return this.Call('user', 'wallet', 'GET', {}, true);
+        },
+
+        DomainSummary: () => {
+            return this.Call('user', 'domains/summary', 'GET', {}, true);
+        },
+
+        Messages: () => {
+            return this.Call('user', 'messages', 'GET', {}, true);
+        },
+
+        ReferralStats: (limit = 10) => {
+            return this.Call(
+                'user',
+                `referral-stats/${limit}`,
+                'GET',
+                {},
+                true,
+            );
         },
 
         PendingHistory: () => {
             return this.Call('user', 'pending-history', 'GET', {}, true);
         },
 
-        Domains: ({
-            offset = 0,
-            sortKey = 'acquiredAt',
-            sortDirection = 'desc',
-            limit = 100,
-        }) => {
+        Domains: (
+            { offset, sortKey, sortDirection, limit } = {
+                offset: 0,
+                sortKey: 'acquiredAt',
+                sortDirection: 'desc',
+                limit: 100,
+            },
+        ) => {
             return this.Call(
                 'user',
                 'domains/not-listed',
@@ -234,7 +264,14 @@ class NameBase {
             );
         },
 
-        TransferredDomains: ({ offset, sortKey, sortDirection, limit }) => {
+        TransferredDomains: (
+            { offset, sortKey, sortDirection, limit } = {
+                offset: 0,
+                sortKey: 'acquiredAt',
+                sortDirection: 'desc',
+                limit: 100,
+            },
+        ) => {
             return this.Call(
                 'user',
                 'domains/transferred',
@@ -249,8 +286,14 @@ class NameBase {
             );
         },
 
-        ListedDomains: () => {
-            return this.Call('user', 'domains/listed', 'GET', {}, true);
+        ListedDomains: (page = 0, limit = 100) => {
+            return this.Call(
+                'user',
+                `domains/listed/${page}`,
+                'GET',
+                { limit },
+                true,
+            );
         },
 
         MFA: () => {
@@ -264,7 +307,7 @@ class NameBase {
                 offset = 0,
                 sortKey = 'createdAt',
                 sortDirection = 'desc',
-            }) => {
+            } = {}) => {
                 return this.Call(
                     'offers',
                     'received',
@@ -284,7 +327,7 @@ class NameBase {
                 offset = 0,
                 sortKey = 'createdAt',
                 sortDirection = 'desc',
-            }) => {
+            } = {}) => {
                 return this.Call(
                     'offers',
                     'sent',
@@ -302,6 +345,12 @@ class NameBase {
 
             Notification: () => {
                 return this.Call('offers', '/', 'GET', {});
+            },
+
+            Inbox: {
+                Received: () => {
+                    return this.Call('offers', 'inbox/received', 'GET', {});
+                },
             },
         },
 
@@ -327,20 +376,24 @@ class NameBase {
     };
 
     Account = {
-        Self: ({
-            receiveWindow = 10000,
-            timestamp = new Date().getTime(),
-        } = {}) => {
+        Self: (
+            { receiveWindow = 10000, timestamp = new Date().getTime() } = {
+                receiveWindow: 10000,
+                timestamp: new Date().getTime(),
+            },
+        ) => {
             return this.Call('account', '/', 'GET', {
                 receiveWindow,
                 timestamp,
             });
         },
 
-        Limits: ({
-            receiveWindow = 10000,
-            timestamp = new Date().getTime(),
-        } = {}) => {
+        Limits: (
+            { receiveWindow = 10000, timestamp = new Date().getTime() } = {
+                receiveWindow: 10000,
+                timestamp: new Date().getTime(),
+            },
+        ) => {
             return this.Call('account', 'limits', 'GET', {
                 receiveWindow,
                 timestamp,
@@ -355,11 +408,17 @@ class NameBase {
         },
 
         Deposit: {
-            Address: ({
-                asset = 'HNS',
-                timestamp = new Date().getTime(),
-                receiveWindow = 10000,
-            } = {}) => {
+            Address: (
+                {
+                    asset = 'HNS',
+                    timestamp = new Date().getTime(),
+                    receiveWindow = 10000,
+                } = {
+                    asset: 'HNS',
+                    timestamp: new Date().getTime(),
+                    receiveWindow: 10000,
+                },
+            ) => {
                 return this.Call('deposit', 'address', 'POST', {
                     asset,
                     timestamp,
@@ -367,13 +426,19 @@ class NameBase {
                 });
             },
 
-            History: ({
-                asset = 'HNS',
-                startTime,
-                endTime,
-                timestamp = new Date().getTime(),
-                receiveWindow = 10000,
-            } = {}) => {
+            History: (
+                {
+                    asset = 'HNS',
+                    startTime,
+                    endTime,
+                    timestamp = new Date().getTime(),
+                    receiveWindow = 10000,
+                } = {
+                    asset: 'HNS',
+                    timestamp: new Date().getTime(),
+                    receiveWindow: 10000,
+                },
+            ) => {
                 return this.Call('deposit', 'history', 'GET', {
                     asset,
                     startTime,
@@ -385,13 +450,19 @@ class NameBase {
         },
 
         Withdraw: {
-            Asset: ({
-                asset = 'HNS',
-                address,
-                amount,
-                timestamp = new Date().getTime(),
-                receiveWindow = 10000,
-            } = {}) => {
+            Asset: (
+                {
+                    asset = 'HNS',
+                    address,
+                    amount,
+                    timestamp = new Date().getTime(),
+                    receiveWindow = 10000,
+                } = {
+                    asset: 'HNS',
+                    timestamp: new Date().getTime(),
+                    receiveWindow: 10000,
+                },
+            ) => {
                 return this.Call('withdraw', '/', 'POST', {
                     asset,
                     address,
@@ -401,13 +472,19 @@ class NameBase {
                 });
             },
 
-            History: ({
-                asset = 'HNS',
-                startTime,
-                endTime,
-                timestamp = new Date().getTime(),
-                receiveWindow = 10000,
-            } = {}) => {
+            History: (
+                {
+                    asset = 'HNS',
+                    startTime,
+                    endTime,
+                    timestamp = new Date().getTime(),
+                    receiveWindow = 10000,
+                } = {
+                    asset: 'HNS',
+                    timestamp: new Date().getTime(),
+                    receiveWindow: 10000,
+                },
+            ) => {
                 return this.Call('withdraw', 'history', 'GET', {
                     asset,
                     startTime,
@@ -465,12 +542,19 @@ class NameBase {
     };
 
     Trade = {
-        History: ({
-            symbol = 'HNSBTC',
-            timestamp = new Date().getTime(),
-            receiveWindow = 10000,
-            limit = 30,
-        } = {}) => {
+        History: (
+            {
+                symbol = 'HNSBTC',
+                timestamp = new Date().getTime(),
+                receiveWindow = 10000,
+                limit = 30,
+            } = {
+                symbol: 'HNSBTC',
+                timestamp: new Date().getTime(),
+                receiveWindow: 10000,
+                limit: 30,
+            },
+        ) => {
             return this.Call('trade', '/', 'GET', {
                 symbol,
                 timestamp,
@@ -479,17 +563,24 @@ class NameBase {
             });
         },
 
-        Account: ({
-            timestamp = new Date().getTime(),
-            receiveWindow = 10000,
-        } = {}) => {
+        Account: (
+            { timestamp = new Date().getTime(), receiveWindow = 10000 } = {
+                timestamp: new Date().getTime(),
+                receiveWindow: 10000,
+            },
+        ) => {
             return this.Call('trade', 'account', 'GET', {
                 timestamp,
                 receiveWindow,
             });
         },
 
-        Depth: ({ symbol = 'HNSBTC', limit = 100 } = {}) => {
+        Depth: (
+            { symbol = 'HNSBTC', limit = 100 } = {
+                symbol: 'HNSBTC',
+                limit: 100,
+            },
+        ) => {
             return this.Call('depth', '/', 'GET', {
                 symbol,
                 limit,
@@ -497,12 +588,18 @@ class NameBase {
         },
 
         Order: {
-            Get: ({
-                symbol = 'HNSBTC',
-                orderId,
-                receiveWindow = 10000,
-                timestamp = new Date().getTime(),
-            } = {}) => {
+            Get: (
+                {
+                    symbol = 'HNSBTC',
+                    orderId,
+                    receiveWindow = 10000,
+                    timestamp = new Date().getTime(),
+                } = {
+                    symbol: 'HNSBTC',
+                    receiveWindow: 10000,
+                    timestamp: new Date().getTime(),
+                },
+            ) => {
                 return this.Call('trade', 'order', 'GET', {
                     symbol,
                     orderId,
@@ -511,15 +608,21 @@ class NameBase {
                 });
             },
 
-            New: ({
-                symbol = 'HNSBTC',
-                side,
-                type,
-                quantity,
-                price,
-                timestamp = new Date().getTime(),
-                receiveWindow = 10000,
-            } = {}) => {
+            New: (
+                {
+                    symbol = 'HNSBTC',
+                    side,
+                    type,
+                    quantity,
+                    price,
+                    timestamp = new Date().getTime(),
+                    receiveWindow = 10000,
+                } = {
+                    symbol: 'HNSBTC',
+                    receiveWindow: 10000,
+                    timestamp: new Date().getTime(),
+                },
+            ) => {
                 return this.Call('order', '/', 'POST', {
                     symbol,
                     side,
@@ -531,12 +634,18 @@ class NameBase {
                 });
             },
 
-            Delete: ({
-                symbol = 'HNSBTC',
-                orderId,
-                receiveWindow = 10000,
-                timestamp = new Date().getTime(),
-            } = {}) => {
+            Delete: (
+                {
+                    symbol = 'HNSBTC',
+                    orderId,
+                    receiveWindow = 10000,
+                    timestamp = new Date().getTime(),
+                } = {
+                    symbol: 'HNSBTC',
+                    receiveWindow: 10000,
+                    timestamp: new Date().getTime(),
+                },
+            ) => {
                 return this.Call('order', '/', 'delete', {
                     symbol,
                     orderId,
@@ -545,11 +654,17 @@ class NameBase {
                 });
             },
 
-            Open: ({
-                symbol = 'HNSBTC',
-                receiveWindow = 10000,
-                timestamp = new Date().getTime(),
-            } = {}) => {
+            Open: (
+                {
+                    symbol = 'HNSBTC',
+                    receiveWindow = 10000,
+                    timestamp = new Date().getTime(),
+                } = {
+                    symbol: 'HNSBTC',
+                    receiveWindow: 10000,
+                    timestamp: new Date().getTime(),
+                },
+            ) => {
                 return this.Call('order', 'open', 'GET', {
                     symbol,
                     orderId,
@@ -558,13 +673,20 @@ class NameBase {
                 });
             },
 
-            All: ({
-                symbol = 'HNSBTC',
-                orderId,
-                limit = 100,
-                receiveWindow = 10000,
-                timestamp = new Date().getTime(),
-            } = {}) => {
+            All: (
+                {
+                    symbol = 'HNSBTC',
+                    orderId,
+                    limit = 100,
+                    receiveWindow = 10000,
+                    timestamp = new Date().getTime(),
+                } = {
+                    limit: 100,
+                    symbol: 'HNSBTC',
+                    receiveWindow: 10000,
+                    timestamp: new Date().getTime(),
+                },
+            ) => {
                 return this.Call('order', 'all', 'GET', {
                     symbol,
                     orderId,
@@ -639,13 +761,19 @@ class NameBase {
             return this.Call('ticker', 'supply', 'GET', { symbol });
         },
 
-        Klines: ({
-            symbol = 'HNSBTC',
-            interval = '5m',
-            startTime,
-            endTime,
-            limit = 100,
-        } = {}) => {
+        Klines: (
+            {
+                symbol = 'HNSBTC',
+                interval = '5m',
+                startTime,
+                endTime,
+                limit = 100,
+            } = {
+                symbol: 'HNSBTC',
+                interval: '5m',
+                limit: 100,
+            },
+        ) => {
             return this.Call('ticker', 'klines', 'GET', {
                 symbol,
                 interval,

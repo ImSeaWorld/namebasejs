@@ -1,4 +1,4 @@
-# NameBaseJS `1.1.1`
+# NameBaseJS `1.1.2`
 
 Promise based [namebase.io](https://namebase.io) API wrapper for my application [Black Mamba](https://github.com/ImSeaWorld/Black-Mamba).
 
@@ -9,6 +9,8 @@ npm install namebasejs --save
 ```
 
 You can get your session from the network tab of Inspect Element under `namebase-main`. Copy everything after the `=`. Although, you don't need to instantiate `namebasejs` with a session, you can also use the local login which will store the session from your login in `_auth`.
+
+_NOTE:_ Currently NameBase is returning warnings when you're using their API too frequently. If you don't catch these warnings, they'll block your IP from being able to access NameBase.
 
 ```javascript
 const nb = new (require('namebasejs'))();
@@ -27,6 +29,12 @@ nb.Auth.Login({ Email: 'email@email.com', Password: 'password' })
 
 Any parameter with a `?` should be considered optional.
 
+## Result
+
+This should be handled as a result from `axios`. We're not using axios for simplicity, but we love axios and use it in other projects! For familiarity sake, it's kept to the same standard.
+
+All methods return `Promise({data, status, rawHeaders})`, the example above is how EVERY method is returned.
+
 ## Auth
 
 -   `nb.Auth.Login({ Email, Password, Token })`
@@ -41,7 +49,11 @@ Any parameter with a `?` should be considered optional.
 ## User
 
 -   `nb.User.Self()`
--   `nb.User.Dashboard()`
+-   `nb.User.Dashboard()` -- Deprecated by NameBase
+-   `nb.User.Wallet()`
+-   `nb.User.DomainSummary()`
+-   `nb.User.Messages()`
+-   `nb.User.ReferralStats(limit?)`
 -   `nb.User.PendingHistory()`
 -   `nb.User.Domains({ offset?, sortKey?, sortDirection?, limit? })`
 -   `nb.User.TransferredDomains({ offset, sortKey, sortDirection, limit })`
@@ -53,6 +65,10 @@ Any parameter with a `?` should be considered optional.
 -   `nb.User.Offers.Sent({ offset?, sortKey?, sortDirection? })`
 -   `nb.User.Offers.Received({ offset?, sortKey?, sortDirection? })`
 -   `nb.User.Offers.Notification()`
+
+#### User.Offers.Inbox
+
+-   `nb.User.Offers.Inbox.Received()`
 
 ### User.Bids
 
