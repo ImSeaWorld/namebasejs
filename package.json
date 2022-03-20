@@ -6,6 +6,10 @@
   "scripts": {
     "test": "jest"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ImSeaWorld/namebasejs.git"
+  },
   "author": "Robert Klitsch",
   "license": "ISC",
   "devDependencies": {
