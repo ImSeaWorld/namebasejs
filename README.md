@@ -57,7 +57,7 @@ All methods return `Promise({data, status, rawHeaders})`, the example above is h
 -   `nb.User.PendingHistory()`
 -   `nb.User.Domains({ offset?, sortKey?, sortDirection?, limit? })`
 -   `nb.User.TransferredDomains({ offset, sortKey, sortDirection, limit })`
--   `nb.User.ListedDomains()`
+-   `nb.User.ListedDomains(offset?, limit?)`
 -   `nb.User.MFA()`
 
 #### User.Offers
@@ -136,17 +136,17 @@ All methods return `Promise({data, status, rawHeaders})`, the example above is h
 -   [`nb.Ticker.Day(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#24hr-ticker-price-change-statistics)
 -   [`nb.Ticker.Book(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#symbol-order-book-ticker)
 -   [`nb.Ticker.Price(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#symbol-price-ticker)
--   [`nb.Ticker.Supply(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#circulating-supply-ticker)
--   [`nb.Ticker.Klines({ symbol?, interval?, startTime, endTime, limit? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#kline-data)
+-   [`nb.Ticker.Supply(asset?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#circulating-supply-ticker)
+-   [`nb.Ticker.Klines({ symbol?, interval?, startTime?, endTime?, limit? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#kline-data)
 
 ## Domains
 
 -   `nb.Domains.Popular(offset?)`
 -   `nb.Domains.RecentlyWon(offset?)`
 -   `nb.Domains.EndingSoon(offset?)`
--   `nb.Domains.Anticipated(offset?)`
--   [`nb.Domains.Sold(sortKey, sortDirection)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#all-sale-history)
--   [`nb.Domains.Marketplace(offset, sortKey, sortDirection, firstCharacter, maxPrice, maxLength, onlyPuny)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#marketplace-listings)
+-   `nb.Domains.Anticipated(offset?)` -- Deprecated
+-   [`nb.Domains.Sold(offset?, sortKey?, sortDirection?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#all-sale-history)
+-   [`nb.Domains.Marketplace(offset?, sortKey?, sortDirection?, onlyPuny?, onlyIdnaPuny?, onlyAlternativePuny?, ...moreArgs?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#marketplace-listings)
 
 ## Misc
 
