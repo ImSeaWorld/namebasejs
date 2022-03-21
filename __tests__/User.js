@@ -1,6 +1,6 @@
 const nameBase = require('../test-suite.config.js');
 
-describe('User API Endpoints', () => {
+describe('User API GET Endpoints', () => {
     it('Tests User.Self status and object structure', async () => {
         const { status, data } = await nameBase.User.Self();
 
