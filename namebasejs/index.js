@@ -286,12 +286,12 @@ class NameBase {
             );
         },
 
-        ListedDomains: (page = 0, limit = 100) => {
+        ListedDomains: (offset = 0, limit = 100) => {
             return this.Call(
                 'user',
-                `domains/listed/${page}`,
+                `domains/listed`,
                 'GET',
-                { limit },
+                { offset, limit },
                 true,
             );
         },
@@ -425,7 +425,8 @@ class NameBase {
                     receiveWindow,
                 });
             },
-
+            // Unsure if this is still an endpoint?
+            // Returns []
             History: (
                 {
                     asset = 'HNS',
@@ -435,6 +436,8 @@ class NameBase {
                     receiveWindow = 10000,
                 } = {
                     asset: 'HNS',
+                    startTime: new Date().getTime() - 2592000000,
+                    endTime: new Date().getTime(),
                     timestamp: new Date().getTime(),
                     receiveWindow: 10000,
                 },
@@ -472,6 +475,8 @@ class NameBase {
                 });
             },
 
+            // Unsure if this is still an endpoint?
+            // Returns []
             History: (
                 {
                     asset = 'HNS',
@@ -481,6 +486,8 @@ class NameBase {
                     receiveWindow = 10000,
                 } = {
                     asset: 'HNS',
+                    startTime: new Date().getTime() - 2592000000,
+                    endTime: new Date().getTime(),
                     timestamp: new Date().getTime(),
                     receiveWindow: 10000,
                 },
@@ -757,8 +764,8 @@ class NameBase {
             return this.Call('ticker', 'price', 'GET', { symbol });
         },
 
-        Supply: (symbol = 'HNSBTC') => {
-            return this.Call('ticker', 'supply', 'GET', { symbol });
+        Supply: (asset = 'HNS') => {
+            return this.Call('ticker', 'supply', 'GET', { asset });
         },
 
         Klines: (
@@ -770,6 +777,8 @@ class NameBase {
                 limit = 100,
             } = {
                 symbol: 'HNSBTC',
+                startTime: new Date().getTime() - 1000 * 60 * 60 * 24,
+                endTime: new Date().getTime(),
                 interval: '5m',
                 limit: 100,
             },
@@ -804,40 +813,41 @@ class NameBase {
         },
 
         Anticipated: (offset = 0) => {
-            return this.Call('domains', 'anticipated', 'GET', { offset }, true);
+            throw new Error('Deprecated - Nolonger any domains in this list');
+            // return this.Call('domains', 'anticipated', 'GET', { offset }, true);
         },
 
-        Sold: (sortKey, sortDirection) => {
+        Sold: (offset = 0, sortKey = 'date', sortDirection = 'desc') => {
             return this.Call(
                 'domains',
-                'sold',
+                `sold`,
                 'GET',
-                { sortKey, sortDirection },
+                { offset, sortKey, sortDirection },
                 true,
             );
         },
 
         Marketplace: (
-            offset,
-            sortKey,
-            sortDirection,
-            firstCharacter,
-            maxPrice,
-            maxLength,
-            onlyPuny,
+            offset = 0,
+            sortKey = 'bid',
+            sortDirection = 'desc',
+            onlyPuny = false,
+            onlyIdnaPuny = false,
+            onlyAlternativePuny = false,
+            ...moreArgs
         ) => {
             return this.Call(
                 'domains',
-                'markeplace',
+                'marketplace',
                 'GET',
                 {
                     offset,
                     sortKey,
                     sortDirection,
-                    firstCharacter,
-                    maxPrice,
-                    maxLength,
                     onlyPuny,
+                    onlyIdnaPuny,
+                    onlyAlternativePuny,
+                    ...moreArgs,
                 },
                 true,
             );
@@ -852,7 +862,7 @@ class NameBase {
         return this.Call(
             'domains',
             'watch/{{domain}}',
-            'GET',
+            'POST',
             { domain },
             true,
         );
