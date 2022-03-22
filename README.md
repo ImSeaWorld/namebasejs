@@ -1,6 +1,6 @@
-# NameBaseJS `1.1.2`
+# NameBaseJS `1.1.3`
 
-Promise based [namebase.io](https://namebase.io) API wrapper for my application [Black Mamba](https://github.com/ImSeaWorld/Black-Mamba).
+Promise based [namebase.io](https://namebase.io) API wrapper
 
 # Usage
 
@@ -8,9 +8,11 @@ Promise based [namebase.io](https://namebase.io) API wrapper for my application 
 npm install namebasejs --save
 ```
 
+This wrapper covers up to 90% of the visible endpoints on namebase currently. Submit an issue or PR to fill in the ones I'm missing.
+
 You can get your session from the network tab of Inspect Element under `namebase-main`. Copy everything after the `=`. Although, you don't need to instantiate `namebasejs` with a session, you can also use the local login which will store the session from your login in `_auth`.
 
-_NOTE:_ Currently NameBase is returning warnings when you're using their API too frequently. If you don't catch these warnings, they'll block your IP from being able to access NameBase.
+_NOTE:_ Currently NameBase is returning `auth0` headers to prevent you from using their API too frequently. If you don't keep track of these, they'll block your IP from being able to access NameBase. Headers added by `auth0` are `x-ratelimit-limit`, `x-ratelimit-remaining` and `x-ratelimit-reset` you can read more about it [here](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy).
 
 ```javascript
 const nb = new (require('namebasejs'))();
@@ -29,11 +31,17 @@ nb.Auth.Login({ Email: 'email@email.com', Password: 'password' })
 
 Any parameter with a `?` should be considered optional.
 
+## Testing with Jest
+
+-   Clone repository: `https://github.com/ImSeaWorld/namebasejs.git`
+-   `npm install`
+-   `npm run test`
+
 ## Result
 
 This should be handled as a result from `axios`. We're not using axios for simplicity, but we love axios and use it in other projects! For familiarity sake, it's kept to the same standard.
 
-All methods return `Promise({data, status, rawHeaders})`, the example above is how EVERY method is returned.
+All methods return `Promise({data, status, session, rawHeaders})`, the example above is how EVERY method is returned.
 
 ## Auth
 
@@ -99,6 +107,7 @@ All methods return `Promise({data, status, rawHeaders})`, the example above is h
 ## Marketplace
 
 -   `nb.Marketplace.Domain(domain)`
+-   `nb.Marketplace.Bid(domain, hnsAmount)` - `1.1.3`
 -   [`nb.Marketplace.History(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#domain-sale-history)
 -   [`nb.Marketplace.List(domain, amount, description, asset?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#list-name--update-listing)
 -   [`nb.Marketplace.CancelListing(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#cancel-listing)
