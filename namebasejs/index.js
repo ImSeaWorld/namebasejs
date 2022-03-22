@@ -546,6 +546,14 @@ class NameBase {
                 domain,
             });
         },
+
+        Bid: (domain, hnsAmount) => {
+            // 0.000000 hns
+            return this.Call('marketplace', '{{domain}}/bid', 'POST', {
+                domain,
+                buyOfferAmount: hnsAmount,
+            });
+        },
     };
 
     Trade = {
