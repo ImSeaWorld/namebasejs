@@ -1,2 +1,3 @@
 node_modules
 test-suite.config.js
+*.priv.js
