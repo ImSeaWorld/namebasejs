@@ -1,0 +1,4 @@
+__tests__
+.prettierrc.js
+test-suite.*
+*.priv.js
