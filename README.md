@@ -1,4 +1,4 @@
-# NameBaseJS `1.1.3`
+# NameBaseJS `1.1.4`
 
 Promise based [namebase.io](https://namebase.io) API wrapper
 
@@ -15,18 +15,55 @@ You can get your session from the network tab of Inspect Element under `namebase
 _NOTE:_ Currently NameBase is returning `auth0` headers to prevent you from using their API too frequently. If you don't keep track of these, they'll block your IP from being able to access NameBase. Headers added by `auth0` are `x-ratelimit-limit`, `x-ratelimit-remaining` and `x-ratelimit-reset` you can read more about it [here](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy).
 
 ```javascript
+// Email and Password
 const nb = new (require('namebasejs'))();
 
 nb.Auth.Login({ Email: 'email@email.com', Password: 'password' })
     .then(({ data, status, rawheaders, session }) => {
+        // This is the only function that returns 'session'
         console.log('My current session: ', session);
     })
     .then(() => {
-        nb.User.Self().then(({ data, status, rawheaders }) => {
+        nb.User.Self().then(({ data }) => {
             console.log('Current HNS Balance: ', data.hns_balance / 1000000); // convert little to big
         });
     })
     .catch((e) => console.error(e));
+```
+
+```javascript
+// With session
+const nb = new (require('namebasejs'))({
+    Session: '%sYOURSESSIONTOKENHERE',
+});
+
+nb.User.Self().then(({ data }) => {
+    console.log('Current HNS Balance: ', data.hns_balance / 1000000); // convert little to big
+});
+```
+
+```javascript
+// With API Keys
+const nb = new (require('namebasejs'))({
+    aKey: '1dXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' // 64 Character Access Key
+    sKey: 'a2XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' // 64 Character Secret Key
+});
+
+// API Keys will restrict the endpoints available to you.
+// It only allows the endpoints of:
+// - Account
+// - Marketplace
+// - Trade
+// - DNS
+// - Ticker
+// - a few Domain endpoints
+
+nb.Account.Self().then(({ data }) => {
+    const assetHNS = data.balances.find(b => b.asset === 'HNS');
+
+    console.log('Current HNS Balance: ', assetHNS.unlocked);
+    console.log('Order Locked HNS Balance: ', assetHNS.lockedInOrders);
+});
 ```
 
 Any parameter with a `?` should be considered optional.
@@ -41,7 +78,7 @@ Any parameter with a `?` should be considered optional.
 
 This should be handled as a result from `axios`. We're not using axios for simplicity, but we love axios and use it in other projects! For familiarity sake, it's kept to the same standard.
 
-All methods return `Promise({data, status, session, rawHeaders})`, the example above is how EVERY method is returned.
+All methods return `Promise({data, status, rawHeaders})`, the example above is how EVERY method is returned.
 
 ## Auth
 
@@ -156,6 +193,11 @@ All methods return `Promise({data, status, session, rawHeaders})`, the example a
 -   `nb.Domains.Anticipated(offset?)` -- Deprecated
 -   [`nb.Domains.Sold(offset?, sortKey?, sortDirection?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#all-sale-history)
 -   [`nb.Domains.Marketplace(offset?, sortKey?, sortDirection?, onlyPuny?, onlyIdnaPuny?, onlyAlternativePuny?, ...moreArgs?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#marketplace-listings)
+
+## Gift
+
+-   `nb.Gift(recipientEmail, senderName, note).SLD(domain)`
+-   `nb.Gift(recipientEmail, senderName, note).TLD(tld)`
 
 ## Misc
 
