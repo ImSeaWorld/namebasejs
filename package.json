@@ -10,6 +10,14 @@
     "type": "git",
     "url": "https://github.com/ImSeaWorld/namebasejs.git"
   },
+  "keywords": [
+    "api",
+    "wrapper",
+    "promise",
+    "namebase",
+    "namebasejs",
+    "namebase.io"
+  ],
   "author": "Robert Klitsch",
   "license": "ISC",
   "devDependencies": {
