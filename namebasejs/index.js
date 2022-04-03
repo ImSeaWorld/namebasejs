@@ -211,8 +211,6 @@ class NameBase {
         },
 
         Dashboard: () => {
-            // Deprecated
-            //return this.Call('user', 'dashboard', 'GET', {}, true);
             throw new Error('Dashboard has been deprecated by Namebase');
         },
 
@@ -303,11 +301,17 @@ class NameBase {
         Offers: {
             // Expected Reply
             // { success: bool, totalCount: int, domains: obj }
-            Received: ({
-                offset = 0,
-                sortKey = 'createdAt',
-                sortDirection = 'desc',
-            } = {}) => {
+            Received: (
+                {
+                    offset = 0,
+                    sortKey = 'createdAt',
+                    sortDirection = 'desc',
+                } = {
+                    offset: 0,
+                    sortKey: 'createdAt',
+                    sortDirection: 'desc',
+                },
+            ) => {
                 return this.Call(
                     'offers',
                     'received',
@@ -323,11 +327,17 @@ class NameBase {
                 );
             },
 
-            Sent: ({
-                offset = 0,
-                sortKey = 'createdAt',
-                sortDirection = 'desc',
-            } = {}) => {
+            Sent: (
+                {
+                    offset = 0,
+                    sortKey = 'createdAt',
+                    sortDirection = 'desc',
+                } = {
+                    offset: 0,
+                    sortKey: 'createdAt',
+                    sortDirection: 'desc',
+                },
+            ) => {
                 return this.Call(
                     'offers',
                     'sent',
@@ -400,7 +410,12 @@ class NameBase {
             });
         },
 
-        Log: ({ accountName = 'unlocked', limit = 10 } = {}) => {
+        Log: (
+            { accountName = 'unlocked', limit = 10 } = {
+                accountName: 'unlocked',
+                limit: 10,
+            },
+        ) => {
             return this.Call('account', 'log', 'GET', {
                 accountName,
                 limit,
