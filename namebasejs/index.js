@@ -862,6 +862,52 @@ class NameBase {
         },
     };
 
+    Gift(recipientEmail, senderName, note) {
+        return {
+            SLD: (domain) => {
+                if (!domain.includes('.')) {
+                    throw new Error(
+                        'Domain must include an owned TLD, and SLD, e.g. SLD.TLD',
+                    );
+                }
+
+                return this.Call(
+                    'gift',
+                    domain,
+                    'POST',
+                    {
+                        recipientEmail,
+                        senderName,
+                        note,
+                    },
+                    true,
+                    false,
+                    true,
+                );
+            },
+            TLD: (tld) => {
+                // unconfirmed
+                if (domain.includes('.')) {
+                    throw new Error("TLD musn't include an SLD, e.g. TLD");
+                }
+
+                return this.Call(
+                    'gift',
+                    tld,
+                    'POST',
+                    {
+                        recipientEmail,
+                        senderName,
+                        note,
+                    },
+                    true,
+                    false,
+                    true,
+                );
+            },
+        };
+    }
+
     Domain(domain) {
         return this.Call('domains', 'get/{{domain}}', 'GET', { domain }, true);
     }
