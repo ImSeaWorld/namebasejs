@@ -9,4 +9,4 @@ const namebasejs = new (require('../namebasejs'))({
     sKey: false, // aKey is also needed, expects string
 });
 
-module.exports = namebasejs;
+export default namebasejs;
