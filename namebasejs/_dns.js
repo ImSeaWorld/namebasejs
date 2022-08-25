@@ -1,4 +1,4 @@
-class DNS {
+export default class DNS {
     /**
      * DNS constructor
      * @param {NameBase} namebase Namebase instance
@@ -90,5 +90,3 @@ class DNS {
         );
     }
 }
-
-export default DNS;

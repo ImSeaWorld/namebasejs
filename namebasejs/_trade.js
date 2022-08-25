@@ -1,4 +1,4 @@
-class Trade {
+export default class Trade {
     /**
      * Trade constructor
      * @param {NameBase} namebase Namebase instance
@@ -113,5 +113,3 @@ class Trade {
         });
     }
 }
-
-export default Trade;

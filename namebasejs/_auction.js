@@ -1,4 +1,4 @@
-class Auction {
+export default class Auction {
     /**
      * Auction constructor
      * @param {NameBase} namebase Namebase instance
@@ -22,5 +22,3 @@ class Auction {
         });
     }
 }
-
-export default Auction;

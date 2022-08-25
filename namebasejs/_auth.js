@@ -1,4 +1,4 @@
-class Auth {
+export default class Auth {
     /**
      * Auction constructor
      * @param {NameBase} namebase Namebase instance
@@ -79,5 +79,3 @@ class Auth {
         return this.nb.request('auth/key', 'DELETE', { accessKey });
     }
 }
-
-export default Auth;

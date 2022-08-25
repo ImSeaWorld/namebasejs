@@ -1,4 +1,4 @@
-class Marketplace {
+export default class Marketplace {
     /**
      * Fiat constructor
      * @param {NameBase} namebase Namebase instance
@@ -105,5 +105,3 @@ class Marketplace {
         );
     }
 }
-
-export default Marketplace;

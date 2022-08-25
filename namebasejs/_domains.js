@@ -1,4 +1,4 @@
-class Domains {
+export default class Domains {
     /**
      * Domains constructor
      * @param {NameBase} namebase Namebase instance
@@ -86,5 +86,3 @@ class Domains {
         });
     }
 }
-
-export default Domains;

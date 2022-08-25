@@ -1,4 +1,4 @@
-class User {
+export default class User {
     /**
      * User constructor
      * @param {NameBase} namebase Namebase instance
@@ -210,5 +210,3 @@ class User {
         });
     }
 }
-
-export default User;

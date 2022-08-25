@@ -1,4 +1,4 @@
-class Fiat {
+export default class Fiat {
     /**
      * Fiat constructor
      * @param {NameBase} namebase Namebase instance
@@ -23,5 +23,3 @@ class Fiat {
         return this.nb.request('api/fiat/ach/accounts', 'GET');
     }
 }
-
-export default Fiat;

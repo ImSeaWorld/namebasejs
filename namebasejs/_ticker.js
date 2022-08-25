@@ -1,4 +1,4 @@
-class Ticker {
+export default class Ticker {
     /**
      * Ticker constructor
      * @param {NameBase} namebase Namebase instance
@@ -74,5 +74,3 @@ class Ticker {
         });
     }
 }
-
-export default Ticker;
