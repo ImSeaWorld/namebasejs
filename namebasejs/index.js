@@ -33,12 +33,12 @@ const Enums = {
 };
 
 class NameBase {
-    constructor({ aKey, sKey, Session } = {}) {
+    constructor({ aKey, sKey, session } = {}) {
         if (aKey && sKey) {
             this._auth_key =
                 'Basic ' + Buffer.from(`${aKey}:${sKey}`).toString('base64');
-        } else if (Session) {
-            this._auth_session = 'namebase-main=' + Session;
+        } else if (session) {
+            this._auth_session = 'namebase-main=' + session;
         } else {
             console.warn(
                 'Namebase functionality is limited without authentication!!',
