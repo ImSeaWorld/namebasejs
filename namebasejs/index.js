@@ -57,6 +57,8 @@ class NameBase {
             _headers.Cookie = this._auth_session;
         }
 
+        this._receive_window = 10000;
+
         this.axios = axios.create({
             baseURL: `https://${ENDPOINT}/`,
             timeout: 10000,
@@ -74,9 +76,59 @@ class NameBase {
         this.ticker = new Ticker(this);
         this.trade = new Trade(this);
         this.user = new User(this);
-        this.enums = Enums;
     }
 
+    get receive_window() {
+        return this._receive_window;
+    }
+
+    /**
+     * Set receive window for timed requests
+     * @param {number} ms Milliseconds
+     */
+    set receive_window(receive_window) {
+        this._receive_window = receive_window;
+    }
+
+    get enums() {
+        return Enums;
+    }
+
+    get session() {
+        return this._auth_session;
+    }
+
+    /**
+     * Set session cookie
+     * @param {string} session session cookie after 'namebase-main='
+     */
+    set session(session) {
+        this._auth_session = 'namebase-main=' + session;
+        this.axios.defaults.headers.Cookie = this._auth_session;
+    }
+
+    get auth_key() {
+        return this._auth_key;
+    }
+
+    /**
+     * Set authentication key
+     * @param {string} access_and_secret_key access and secret keys delimited by a colon
+     */
+    set auth_key(access_and_secret_key) {
+        this._auth_key =
+            'Basic ' + Buffer.from(access_and_secret_key).toString('base64');
+        this.axios.defaults.headers.Authorization = this._auth_key;
+    }
+
+    /**
+     * Send request to Namebase API
+     * @param {string} _interface URL Structure
+     * @param {string} method HTTP Method
+     * @param {object} payload Request Payload
+     * @param  {...any} args Extra arguments
+     * @returns {AxiosPromise} Axios Promise
+     */
     request(_interface, method, payload = {}, ...args) {
         let _url = _interface;
 
@@ -112,6 +164,14 @@ class NameBase {
         });
     }
 
+    /**
+     * Timed request to Namebase API
+     * @param {string} _interface URL Structure
+     * @param {string} method HTTP Method
+     * @param {object} payload Request Payload
+     * @param  {...any} args Extra arguments
+     * @returns {AxiosPromise} Axios Promise
+     */
     timedRequest(_interface, method, payload = {}, ...args) {
         return this.request(
             _interface,
@@ -119,7 +179,7 @@ class NameBase {
             {
                 ...payload,
                 timestamp: new Date().getTime(),
-                receiveWindow: 10000,
+                receiveWindow: this._receive_window,
             },
             ...args,
         );
