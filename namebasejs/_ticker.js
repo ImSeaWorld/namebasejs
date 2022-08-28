@@ -53,9 +53,9 @@ export default class Ticker {
      * Klines between start and end time
      * @param {string} symbol
      * @param {string} interval
-     * @param {int} startTime
-     * @param {int} endTime
-     * @param {int} limit
+     * @param {number} startTime
+     * @param {number} endTime
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     klines(

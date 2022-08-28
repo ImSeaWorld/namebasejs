@@ -9,7 +9,7 @@ export default class Domains {
 
     /**
      * Popular domains, as dictated by Namebase
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @returns {AxiosPromise} AxiosPromise
      */
     popular(offset = 0) {
@@ -20,7 +20,7 @@ export default class Domains {
 
     /**
      * Recently won domains
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @returns {AxiosPromise} AxiosPromise
      */
     recentlyWon(offset = 0) {
@@ -31,7 +31,7 @@ export default class Domains {
 
     /**
      * HNS TLD auctions ending soon
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @returns {AxiosPromise} AxiosPromise
      */
     endingSoon(offset = 0) {
@@ -42,7 +42,7 @@ export default class Domains {
 
     /**
      * List of sold domains
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @param {string} sortKey
      * @param {string} sortDirection
      * @returns {AxiosPromise} AxiosPromise
@@ -57,7 +57,7 @@ export default class Domains {
 
     /**
      * Domains actively for sale on the marketplace
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @param {string} sortKey
      * @param {string} sortDirection
      * @param {bool} onlyPuny

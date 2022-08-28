@@ -41,7 +41,7 @@ export default class User {
 
     /**
      * Dashboard widget domain summary
-     * @param {int} limit
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     referralStats(limit = 10) {
@@ -58,10 +58,10 @@ export default class User {
 
     /**
      * List of domains that are currently not for sale
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @param {string} sortKey
      * @param {string} sortDirection
-     * @param {int} limit
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     domains(
@@ -84,10 +84,10 @@ export default class User {
 
     /**
      * Transferred domains history
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @param {string} sortKey
      * @param {string} sortDirection
-     * @param {int} limit
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     transferredDomains(
@@ -110,8 +110,8 @@ export default class User {
 
     /**
      * Domains listed for sale
-     * @param {int} offset Page offset
-     * @param {int} limit
+     * @param {number} offset Page offset
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     listedDomains(offset = 0, limit = 100) {
@@ -140,7 +140,7 @@ export default class User {
 
     /**
      * Offers sent
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @param {string} sortKey
      * @param {string} sortDirection
      * @returns {AxiosPromise} AxiosPromise
@@ -155,7 +155,7 @@ export default class User {
 
     /**
      * Offers received
-     * @param {int} offset page offset
+     * @param {number} offset page offset
      * @param {string} sortKey
      * @param {string} sortDirection
      * @returns {AxiosPromise} AxiosPromise
@@ -178,7 +178,7 @@ export default class User {
 
     /**
      * Bids on active auctions
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @returns {AxiosPromise} AxiosPromise
      */
     openBids(offset = 0) {
@@ -189,7 +189,7 @@ export default class User {
 
     /**
      * Domains you've lost in auction
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @returns {AxiosPromise} AxiosPromise
      */
     lostBids(offset = 0) {
@@ -201,7 +201,7 @@ export default class User {
     /**
      * Domains in auction that are currently
      * in the reveal period of the auction
-     * @param {int} offset Page offset
+     * @param {number} offset Page offset
      * @returns {AxiosPromise} AxiosPromise
      */
     revealingBids(offset = 0) {

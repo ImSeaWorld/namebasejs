@@ -10,7 +10,7 @@ export default class Trade {
     /**
      * Trade history
      * @param {string} symbol enums.symbols
-     * @param {int} limit
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     history(symbol = 'HNSBTC', limit = 30) {
@@ -31,7 +31,7 @@ export default class Trade {
     /**
      * Trade depth
      * @param {string} symbol enums.symbols
-     * @param {int} limit
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     depth(symbol = 'HNSBTC', limit = 100) {
@@ -45,7 +45,7 @@ export default class Trade {
      * Trade orders
      * @param {string} symbol
      * @param {*} orderId
-     * @param {int} limit
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     orders(symbol = 'HNSBTC', orderId, limit = 100) {

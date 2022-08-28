@@ -26,7 +26,7 @@ export default class Account {
     /**
      * No clue what this does
      * @param {string} accountName Always 'unlocked'
-     * @param {int} limit
+     * @param {number} limit
      * @returns {AxiosPromise} AxiosPromise
      */
     log(accountName = 'unlocked', limit = 10) {
@@ -50,8 +50,8 @@ export default class Account {
     /**
      * Accounts deposit history
      * @param {string} asset enums.assets
-     * @param {int} startTime unix timestamp
-     * @param {int} endTime unix timestamp
+     * @param {number} startTime unix timestamp
+     * @param {number} endTime unix timestamp
      * @returns {AxiosPromise} AxiosPromise
      */
     depositHistory(
@@ -70,7 +70,7 @@ export default class Account {
      * Withdraw HNS from signed in users wallet
      * @param {string} asset enums.assets
      * @param {string} address HNS wallet address
-     * @param {int} amount HNS amount
+     * @param {number} amount HNS amount
      * @returns {AxiosPromise} AxiosPromise
      */
     withdraw(asset = 'HNS', address, amount) {
@@ -84,8 +84,8 @@ export default class Account {
     /**
      * Widthdrawal history of account
      * @param {string} asset enums.assets
-     * @param {int} startTime unix timestamp
-     * @param {int} endTime unix timestamp
+     * @param {number} startTime unix timestamp
+     * @param {number} endTime unix timestamp
      * @returns {AxiosPromise} AxiosPromise
      */
     withdrawHistory(
