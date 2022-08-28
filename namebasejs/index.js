@@ -32,7 +32,7 @@ const Enums = {
     },
 };
 
-class NameBase {
+export default class NameBaseJS {
     constructor({ aKey, sKey, session } = {}) {
         if (aKey && sKey) {
             this._auth_key =
@@ -185,5 +185,3 @@ class NameBase {
         );
     }
 }
-
-export default NameBase;
