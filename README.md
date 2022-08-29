@@ -12,15 +12,19 @@ This wrapper covers up to 90% of the visible endpoints on namebase currently. Su
 
 You can get your session from the network tab of Inspect Element under `namebase-main`. Copy everything after the `=`. Although, you don't need to instantiate `namebasejs` with a session, you can also use the local login which will store the session from your login in `_auth_session`.
 
-_NOTE:_ Currently NameBase is returning `auth0` headers to prevent you from using their API too frequently. If you don't keep track of these, they'll block your IP from being able to access NameBase. Headers added by `auth0` are `x-ratelimit-limit`, `x-ratelimit-remaining` and `x-ratelimit-reset` you can read more about it [here](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy).
+_NOTE:_ Currently NameBase is returning `auth0` headers to prevent you from using their API too frequently. 
+
+`1.2.0` - Added handling for `auth0` headers, this can be disabled if it's not working correctly or you want to handle everything yourself. You can read more about `auth0` headers [here](https://auth0.com/docs/policies/rate-limit-policy).
+Disable `auth0` like so(after instantiation of `namebasejs`): `namebasejs.auth0 = false;`
+This doesn't stop you from using the API, it just doesn't handle the `auth0` headers for you. It will still keep track of the `auth0` headers and are available at `namebasejs.auth0_headers`.
 
 ## Example: Login using email & password
 ```javascript
 import NameBaseJS from "namebasejs";
 
-const namebase = new NameBaseJS();
+const namebasejs = new NameBaseJS();
 
-namebase.auth.login('email', 'password')
+namebasejs.auth.login('email', 'password')
     .then(({ data, status, headers, session }) => {
         // This is the only function that returns 'session'
         console.log('My current session: ', session);
@@ -28,7 +32,7 @@ namebase.auth.login('email', 'password')
         if (status === 200) {
             console.log('Logged in successfully!');
             
-            namebase.user.self().then(({ data }) => {
+            namebasejs.user.self().then(({ data }) => {
                 console.log('Current HNS Balance: ', data.hns_balance / 1000000); // convert little to big
             });
         }
@@ -40,9 +44,9 @@ namebase.auth.login('email', 'password')
 ```javascript
 import NameBaseJS from "namebasejs";
 
-const namebase = new NameBaseJS({session: 'SESSION_TOKEN'});
+const namebasejs = new NameBaseJS({session: 'SESSION_TOKEN'});
 
-namebase.user.self().then(({ data }) => {
+namebasejs.user.self().then(({ data }) => {
     console.log('Current HNS Balance: ', data.hns_balance / 1000000); // convert little to big
 });
 ```
@@ -51,7 +55,7 @@ namebase.user.self().then(({ data }) => {
 ```javascript
 import NameBaseJS from "namebasejs";
 
-const namebase = new NameBaseJS({
+const namebasejs = new NameBaseJS({
     aKey: '1dXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', // 64 Character Access Key
     sKey: 'a2XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' // 64 Character Secret Key
 });
@@ -65,7 +69,7 @@ const namebase = new NameBaseJS({
 // - Ticker
 // - a few Domain endpoints
 
-namebase.account.self().then(({ data }) => {
+namebasejs.account.self().then(({ data }) => {
     const assetHNS = data.balances.find(b => b.asset === 'HNS');
 
     console.log('Current HNS Balance: ', assetHNS.unlocked);
@@ -97,6 +101,30 @@ We're now using [Axios](https://www.npmjs.com/package/axios)! This means we can 
 All methods return `AxiosPromise`, the example above is how EVERY method is returned.
 
 Any parameter with a `?` should be considered optional.
+
+## NameBaseJS
+
+-   `namebasejs({ session?: string, aKey?: string, sKey?: string })` - Constructor
+-   `namebasejs.axios` - The instance of `axios` used for requests.
+-   `namebasejs.auth0` - Boolean to enable/disable `auth0` headers. Default: `true`
+-   `namebasejs.auth0_headers` - The `auth0` object populated by the headers that are returned from the server. This does include `now()` function to get the current time(unix).
+-   `namebasejs.receive_window` - The receive window for timed requests. Default: `10000`(ms)
+-   `namebasejs.enums` - The enums used for the API.
+-   `namebasejs.session` - The session token used for requests. Default: `null`
+-   `namebasejs.auth_key` - The access key used for requests. Set with colon delimited access and secret key! Default: `null`
+-   `namebasejs.request(_interface, method, paylod?, ...args?)` - The request method used for all requests. This is the method that handles the `auth0` headers. This method is not meant to be used directly, but is exposed for advanced usage.
+-   `namebasejs.timedRequest(_interface, method, payload?, ...args?)` - The timed request method used for all requests that require a `receive_window`. This method is not meant to be used directly, but is exposed for advanced usage.
+-   `namebasejs.account` - The [account interface](#account).
+-   `namebasejs.auction` - The [auction interface](#auction).
+-   `namebasejs.auth` - The [auth interface](#auth).
+-   `namebasejs.dns` - The [dns interface](#dns).
+-   `namebasejs.domain` - `1.2.0` The [domain interface](#domain---120).
+-   `namebasejs.domains` - The [domains interface](#domains).
+-   `namebasejs.fiat` - The [fiat interface](#fiat).
+-   `namebasejs.marketplace` - The [marketplace interface](#marketplace).
+-   `namebasejs.ticker` - The [ticker interface](#ticker).
+-   `namebasejs.trade` - The [trade interface](#trade).
+-   `namebasejs.user` - The [user interface](#user).
 
 ## Account
 
