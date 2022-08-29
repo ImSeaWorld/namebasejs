@@ -1,4 +1,4 @@
-# NameBaseJS `1.1.4`
+# NameBaseJS `1.2.0`
 
 Promise based [namebase.io](https://namebase.io) API wrapper
 
@@ -10,42 +10,53 @@ npm install namebasejs --save
 
 This wrapper covers up to 90% of the visible endpoints on namebase currently. Submit an issue or PR to fill in the ones I'm missing.
 
-You can get your session from the network tab of Inspect Element under `namebase-main`. Copy everything after the `=`. Although, you don't need to instantiate `namebasejs` with a session, you can also use the local login which will store the session from your login in `_auth`.
+You can get your session from the network tab of Inspect Element under `namebase-main`. Copy everything after the `=`. Although, you don't need to instantiate `namebasejs` with a session, you can also use the local login which will store the session from your login in `_auth_session` which can be gotten from the api `namebasejs.session` at any time.
 
-_NOTE:_ Currently NameBase is returning `auth0` headers to prevent you from using their API too frequently. If you don't keep track of these, they'll block your IP from being able to access NameBase. Headers added by `auth0` are `x-ratelimit-limit`, `x-ratelimit-remaining` and `x-ratelimit-reset` you can read more about it [here](https://auth0.com/docs/troubleshoot/customer-support/operational-policies/rate-limit-policy).
+_NOTE:_ Currently NameBase is returning `auth0` headers to prevent you from using their API too frequently. 
 
+`1.2.0` - Added handling for `auth0` headers, this can be disabled if it's not working correctly or you want to handle everything yourself. You can read more about `auth0` headers [here](https://auth0.com/docs/policies/rate-limit-policy).
+Disable `auth0` like so(after instantiation of `namebasejs`): `namebasejs.auth0 = false;`
+This doesn't stop you from using the API, it just doesn't handle the `auth0` headers for you. It will still keep track of the `auth0` headers and are available at `namebasejs.auth0_headers`.
+
+## Example: Login using email & password
 ```javascript
-// Email and Password
-const nb = new (require('namebasejs'))();
+import NameBaseJS from "namebasejs";
 
-nb.Auth.Login({ Email: 'email@email.com', Password: 'password' })
-    .then(({ data, status, rawheaders, session }) => {
+const namebasejs = new NameBaseJS();
+
+namebasejs.auth.login('email', 'password')
+    .then(({ data, status, headers, session }) => {
         // This is the only function that returns 'session'
         console.log('My current session: ', session);
+
+        if (status === 200) {
+            console.log('Logged in successfully!');
+            
+            namebasejs.user.self().then(({ data }) => {
+                console.log('Current HNS Balance: ', data.hns_balance / 1000000); // convert little to big
+            });
+        }
     })
-    .then(() => {
-        nb.User.Self().then(({ data }) => {
-            console.log('Current HNS Balance: ', data.hns_balance / 1000000); // convert little to big
-        });
-    })
-    .catch((e) => console.error(e));
+    .catch(console.error);
 ```
 
+## Example: Login using session
 ```javascript
-// With session
-const nb = new (require('namebasejs'))({
-    Session: '%sYOURSESSIONTOKENHERE',
-});
+import NameBaseJS from "namebasejs";
 
-nb.User.Self().then(({ data }) => {
+const namebasejs = new NameBaseJS({session: 'SESSION_TOKEN'});
+
+namebasejs.user.self().then(({ data }) => {
     console.log('Current HNS Balance: ', data.hns_balance / 1000000); // convert little to big
 });
 ```
 
+## Example: Login using Access and Secret keys
 ```javascript
-// With API Keys
-const nb = new (require('namebasejs'))({
-    aKey: '1dXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' // 64 Character Access Key
+import NameBaseJS from "namebasejs";
+
+const namebasejs = new NameBaseJS({
+    aKey: '1dXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', // 64 Character Access Key
     sKey: 'a2XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' // 64 Character Secret Key
 });
 
@@ -58,7 +69,7 @@ const nb = new (require('namebasejs'))({
 // - Ticker
 // - a few Domain endpoints
 
-nb.Account.Self().then(({ data }) => {
+namebasejs.account.self().then(({ data }) => {
     const assetHNS = data.balances.find(b => b.asset === 'HNS');
 
     console.log('Current HNS Balance: ', assetHNS.unlocked);
@@ -66,9 +77,7 @@ nb.Account.Self().then(({ data }) => {
 });
 ```
 
-Any parameter with a `?` should be considered optional.
-
-## Testing with Jest
+## Testing with Jest [Broken Currently]
 
 -   Clone repository: `https://github.com/ImSeaWorld/namebasejs.git`
 -   `npm install`
@@ -76,130 +85,140 @@ Any parameter with a `?` should be considered optional.
 
 ## Result
 
-This should be handled as a result from `axios`. We're not using axios for simplicity, but we love axios and use it in other projects! For familiarity sake, it's kept to the same standard.
+We're now using [Axios](https://www.npmjs.com/package/axios)! This means we can now be used in the browser and NodeJS! Referring to the [Axios](https://www.npmjs.com/package/axios) documentation, the response schema is as follows:
 
-All methods return `Promise({data, status, rawHeaders})`, the example above is how EVERY method is returned.
+```javascript
+{
+    data: {}, // The response that was provided by the API
+    status: 200, // HTTP status code from the server response
+    statusText: 'OK', // HTTP status message from the server response
+    headers: {}, // The headers that the server responded with
+    config: {}, // The config that was provided to `axios` for the request
+    request: {} // The request that generated this response
+}
+```
 
-## Auth
+All methods return `AxiosPromise`, the example above is how EVERY method is returned.
 
--   `nb.Auth.Login({ Email, Password, Token })`
--   `nb.Auth.Logout()`
+Any parameter with a `?` should be considered optional.
 
-#### Auth.API
+## NameBaseJS
 
--   `nb.Auth.API.Keys()`
--   `nb.Auth.API.Create(name)`
--   `nb.Auth.API.Delete(AccessKey)`
-
-## User
-
--   `nb.User.Self()`
--   `nb.User.Dashboard()` -- Deprecated by NameBase
--   `nb.User.Wallet()` - `1.1.2`
--   `nb.User.DomainSummary()` - `1.1.2`
--   `nb.User.Messages()` - `1.1.2`
--   `nb.User.ReferralStats(limit?)` - `1.1.2`
--   `nb.User.PendingHistory()`
--   `nb.User.Domains({ offset?, sortKey?, sortDirection?, limit? })`
--   `nb.User.TransferredDomains({ offset, sortKey, sortDirection, limit })`
--   `nb.User.ListedDomains(offset?, limit?)`
--   `nb.User.MFA()`
-
-#### User.Offers
-
--   `nb.User.Offers.Sent({ offset?, sortKey?, sortDirection? })`
--   `nb.User.Offers.Received({ offset?, sortKey?, sortDirection? })`
--   `nb.User.Offers.Notification()`
-
-#### User.Offers.Inbox - `1.1.2`
-
--   `nb.User.Offers.Inbox.Received()` - `1.1.2`
-
-#### User.Bids
-
--   `nb.User.Bids.Open(offset?)`
--   `nb.User.Bids.Lost(offset?)`
--   `nb.User.Bids.Revealing(offset?)`
+-   `namebasejs({ session?: string, aKey?: string, sKey?: string })` - Constructor
+-   `namebasejs.axios` - The instance of `axios` used for requests.
+-   `namebasejs.auth0` - Boolean to enable/disable `auth0` headers. Default: `true`
+-   `namebasejs.auth0_headers` - The `auth0` object populated by the headers that are returned from the server. This does include `now()` function to get the current time(unix).
+-   `namebasejs.receive_window` - The receive window for timed requests. Default: `10000`(ms)
+-   `namebasejs.enums` - The enums used for the API.
+-   `namebasejs.session` - The session token used for requests. Default: `null`
+-   `namebasejs.auth_key` - The access key used for requests. Set with colon delimited access and secret key! Default: `null`
+-   `namebasejs.request(_interface, method, paylod?, ...args?)` - The request method used for all requests. This is the method that handles the `auth0` headers. This method is not meant to be used directly, but is exposed for advanced usage.
+-   `namebasejs.timedRequest(_interface, method, payload?, ...args?)` - The timed request method used for all requests that require a `receive_window`. This method is not meant to be used directly, but is exposed for advanced usage.
+-   `namebasejs.account` - The [account interface](#account).
+-   `namebasejs.auction` - The [auction interface](#auction).
+-   `namebasejs.auth` - The [auth interface](#auth).
+-   `namebasejs.dns` - The [dns interface](#dns).
+-   `namebasejs.domain` - `1.2.0` The [domain interface](#domain---120).
+-   `namebasejs.domains` - The [domains interface](#domains).
+-   `namebasejs.fiat` - The [fiat interface](#fiat).
+-   `namebasejs.marketplace` - The [marketplace interface](#marketplace).
+-   `namebasejs.ticker` - The [ticker interface](#ticker).
+-   `namebasejs.trade` - The [trade interface](#trade).
+-   `namebasejs.user` - The [user interface](#user).
 
 ## Account
 
--   `nb.Account.Log({ accountName?, limit? })`
--   [`nb.Account.Self({ receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-information)
--   [`nb.Account.Limits({ receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-withdrawal-limits)
-
-#### Account.Deposit
-
--   [`nb.Account.Deposit.Address({ asset?, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#deposit-address)
--   [`nb.Account.Deposit.History({ asset?, startTime, endTime, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#deposit-history)
-
-#### Account.Withdraw
-
--   [`nb.Account.Withdraw.Asset({ asset?, address, amount, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#withdraw)
--   [`nb.Account.Withdraw.History({ asset?, startTime, endTime, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#withdraw-history)
+-   [`account.self()`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-information) - Get current account
+-   [`account.limits()`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-withdrawal-limits) - Account limitations set by NameBase
+-   `account.log(accountName?, limit?)` - No idea what this is 
+-   [`account.depositAddress({ asset?, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#deposit-address)
+-   [`account.depositHistory({ asset?, startTime, endTime, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#deposit-history)
+-   [`account.withdraw({ asset?, address, amount, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#withdraw)
+-   [`account.withdrawHistory({ asset?, startTime, endTime, timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#withdraw-history)
 
 ## Auction
 
--   `nb.Auction.Bid(domain, bid, blind)`
+-   `auction.bid(domain, bidAmount, blindAmount)` - Bid on a domain
 
-## Marketplace
+## Auth
 
--   `nb.Marketplace.Domain(domain)`
--   `nb.Marketplace.Bid(domain, hnsAmount)` - `1.1.3`
--   [`nb.Marketplace.History(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#domain-sale-history)
--   [`nb.Marketplace.List(domain, amount, description, asset?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#list-name--update-listing)
--   [`nb.Marketplace.CancelListing(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#cancel-listing)
--   [`nb.Marketplace.BuyNow(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#purchase-name)
-
-## Trade
-
--   [`nb.Trade.History({ symbol?, timestamp?, receiveWindow?, limit? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#trade-lookup)
--   [`nb.Trade.Account({ timestamp?, receiveWindow? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-trade-list)
--   [`nb.Trade.Depth({ symbol?, limit? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#order-book)
-
-#### Trade.Order
-
--   [`nb.Trade.Order.Get({ symbol?, orderId, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#order-trade-list)
--   [`nb.Trade.Order.New({ symbol?, side, type, quantity, price, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#new-order)
--   [`nb.Trade.Order.All({ symbol?, orderId, limit?, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#all-orders)
--   [`nb.Trade.Order.Open({ symbol?, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#current-open-orders)
--   [`nb.Trade.Order.Delete({ symbol?, orderId, receiveWindow?, timestamp? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#cancel-order)
+-   `auth.login(email, password, token?)` - Login using email, password and 2fa token if enabled
+-   `auth.logout()` - Logout of current session
+-   `auth.apiKeys()` - Get all API Keys
+-   `auth.apiKeyCreate(name)` - Create an API Key
+-   `auth.apiKeyDelete(accessKey)` - Delete an API Key
 
 ## DNS
 
--   [`nb.DNS.Get(domain)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#get-settings)
--   [`nb.DNS.Set(domain, records)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings)
--   [`nb.DNS.AdvancedSet(domain, rawNameState)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings-advanced)
--   [`nb.DNS.NameServers(domain)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#get-settings-1)
--   [`nb.DNS.SetNameServers(domain, records, deleteRecords)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings-1)
+-   [`dns.get(domain)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#get-settings)
+-   [`dns.set(domain, records)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings)
+-   [`dns.advanced(domain, rawNameState)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings-advanced)
+-   [`dns.nameServers(domain)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#get-settings-1)
+-   [`dns.setNameServers(domain, records, deleteRecords)`](https://github.com/namebasehq/api-documentation/blob/master/dns-settings-api.md#change-settings-1)
 
-## Fiat
+## Domain - `1.2.0`
 
--   `nb.Fiat.Accounts()`
--   `nb.Fiat.Transfers()`
-
-## Ticker
-
--   [`nb.Ticker.Day(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#24hr-ticker-price-change-statistics)
--   [`nb.Ticker.Book(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#symbol-order-book-ticker)
--   [`nb.Ticker.Price(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#symbol-price-ticker)
--   [`nb.Ticker.Supply(asset?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#circulating-supply-ticker)
--   [`nb.Ticker.Klines({ symbol?, interval?, startTime?, endTime?, limit? })`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#kline-data)
+-   `domain.get(domain)` - `1.2.0` Get domain info
+-   `domain.watch(domain)` - `1.2.0` Watch a domain for updates(toggles)
+-   `domain.giftSLD(domain, recipientEmail, senderName, note)` - `1.2.0` Gift a domain to a friend
+-   `domain.giftTLD(domain, recipientEmail, senderName, note)` - `1.2.0` Gift a domain to a friend
 
 ## Domains
 
--   `nb.Domains.Popular(offset?)`
--   `nb.Domains.RecentlyWon(offset?)`
--   `nb.Domains.EndingSoon(offset?)`
--   `nb.Domains.Anticipated(offset?)` -- Deprecated
--   [`nb.Domains.Sold(offset?, sortKey?, sortDirection?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#all-sale-history)
--   [`nb.Domains.Marketplace(offset?, sortKey?, sortDirection?, onlyPuny?, onlyIdnaPuny?, onlyAlternativePuny?, ...moreArgs?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#marketplace-listings)
+-   `domains.popular(offset?)`
+-   `domains.recentlyWon(offset?)`
+-   `domains.endingSoon(offset?)`
+-   [`domains.sold(offset?, sortKey?, sortDirection?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#all-sale-history)
+-   [`domains.marketplace(offset?, sortKey?, sortDirection?, onlyPuny?, onlyIdnaPuny?, onlyAlternativePuny?, ...moreArgs?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#marketplace-listings)
 
-## Gift
+## Fiat
 
--   `nb.Gift(recipientEmail, senderName, note).SLD(domain)`
--   `nb.Gift(recipientEmail, senderName, note).TLD(tld)`
+-   `fiat.accounts()`
+-   `fiat.transfers()`
 
-## Misc
+## Marketplace
 
--   `nb.Domain(Domain)`
--   `nb.WatchDomain(Domain)`
+-   [`marketplace.list(domain, amount, description, asset?)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#list-name--update-listing) - List a domain for sale
+-   `marketplace.domain(domain)` - Get marketplace listing
+-   [`marketplace.history(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#domain-sale-history) - Get marketplace history
+-   `marketplace.offer(domain, buyOfferAmount)` - `1.1.3` Make an offer on a domain
+-   [`marketplace.cancelListing(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#cancel-listing)
+-   [`marketplace.buyNow(domain)`](https://github.com/namebasehq/api-documentation/blob/master/marketplace-api.md#purchase-name)
+
+## Ticker
+
+-   [`ticker.day(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#24hr-ticker-price-change-statistics)
+-   [`ticker.book(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#symbol-order-book-ticker)
+-   [`ticker.price(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#symbol-price-ticker)
+-   [`ticker.supply(asset?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#circulating-supply-ticker)
+-   [`ticker.klines(symbol?, interval?, startTime?, endTime?, limit?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#kline-data)
+
+## Trade
+
+-   [`trade.history(symbol?, limit?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#trade-lookup)
+-   [`trade.account()`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#account-trade-list)
+-   [`trade.depth(symbol?, limit?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#order-book)
+-   [`trade.orders(symbol?, orderId, limit?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#all-orders)
+-   [`trade.getOrder(symbol?, orderId)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#order-trade-list)
+-   [`trade.newOrder(symbol?, side, type, quantity, price)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#new-order)
+-   [`trade.deleteOrder(symbol?, orderId)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#cancel-order)
+-   [`trade.openOrders(symbol?)`](https://github.com/namebasehq/api-documentation/blob/master/rest-api.md#current-open-orders)
+
+## User
+
+-   `user.self()` - Get current user
+-   `user.wallet()` - `1.1.2`
+-   `user.domainSummary()` - `1.1.2` Domain summary dashboard widget
+-   `user.messages()` - `1.1.2`
+-   `user.referralStats(limit?)` - `1.1.2` Referral stats dashboard widget
+-   `user.pendingHistory()` - Pending history dashboard widget
+-   `user.domains(offset?, sortKey?, sortDirection?, limit?)` - Unlisted domains
+-   `user.transferredDomains(offset?, sortKey?, sortDirection?, limit?)` - Domain transfer history
+-   `user.listedDomains(offset?, limit?)` - Domains listed for sale
+-   `user.mfa()` - Check if multifactor authentication is enabled
+-   `user.offersSent(offset?, sortKey?, sortDirection?)`
+-   `user.offersReceived(offset?, sortKey?, sortDirection?)`
+-   `user.offersNotifications()` - Offer notification widget
+-   `user.openBids(offset?)` - Open bids on active auctions
+-   `user.lostBids(offset?)` - Lost bids on ended auctions
+-   `user.revealingBids(offset?)` - Bids that are currently in reveal

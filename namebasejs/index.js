@@ -1,941 +1,295 @@
-const utils = require('./utils.js');
+import axios from 'axios';
+
+import Account from './_account.js';
+import Auction from './_auction.js';
+import Auth from './_auth.js';
+import DNS from './_dns.js';
+import Domain from './_domain.js';
+import Domains from './_domains.js';
+import Fiat from './_fiat.js';
+import Marketplace from './_marketplace.js';
+import Ticker from './_ticker.js';
+import Trade from './_trade.js';
+import User from './_user.js';
 
 const VERSION = 'v0';
 const ENDPOINT = 'www.namebase.io';
 
-class NameBase {
-    _auth = {
-        key: null,
-        session: null,
-    };
-    _enums = {
-        Assets: { HNS: 'HNS', BTC: 'BTC' },
-        Symbols: { HNSBTC: 'HNSBTC' },
-        OrderTypes: { LMT: 'LMT', MKT: 'MKT' },
-        OrderSides: { BUY: 'BUY', SELL: 'SELL' },
-        Intervals: {
-            ONE_MINUTE: '1m',
-            FIVE_MINUTES: '5m',
-            FIFTEEN_MINUTES: '15m',
-            ONE_HOUR: '1h',
-            FOUR_HOURS: '4h',
-            TWELVE_HOURS: '12h',
-            ONE_DAY: '1d',
-            ONE_WEEK: '1w',
-        },
-    };
+const Enums = {
+    assets: { HNS: 'HNS', BTC: 'BTC' },
+    symbols: { HNSBTC: 'HNSBTC' },
+    order_types: { LMT: 'LMT', MKT: 'MKT' },
+    order_sides: { BUY: 'BUY', SELL: 'SELL' },
+    intervals: {
+        ONE_MINUTE: '1m',
+        FIVE_MINUTES: '5m',
+        FIFTEEN_MINUTES: '15m',
+        ONE_HOUR: '1h',
+        FOUR_HOURS: '4h',
+        TWELVE_HOURS: '12h',
+        ONE_DAY: '1d',
+        ONE_WEEK: '1w',
+    },
+};
 
-    constructor({ aKey, sKey, Session } = {}) {
+export default class NameBaseJS {
+    constructor({ aKey, sKey, session } = {}) {
         if (aKey && sKey) {
-            this._auth.key =
+            this._auth_key =
                 'Basic ' + Buffer.from(`${aKey}:${sKey}`).toString('base64');
-        } else if (Session) {
-            this._auth.session = 'namebase-main=' + Session;
+        } else if (session) {
+            this._auth_session = 'namebase-main=' + session;
         } else {
             console.warn(
                 'Namebase functionality is limited without authentication!!',
             );
         }
-    }
 
-    Call(
-        _interface,
-        method,
-        httpmethod,
-        parameters,
-        disableVersion = false,
-        disableApi = false,
-        disableOffset = false,
-    ) {
-        return new Promise((res, rej) => {
-            var URLPath = `?`;
+        let _headers = {
+            'Content-Type': 'application/json',
+        };
 
-            method = method.split(':')[0];
+        if (this._auth_key ?? false) {
+            _headers.Authorization = this._auth_key;
+        }
 
-            // Build URL structure
-            for (var key in parameters) {
-                if (key === 'domain' || (key === 'offset' && !disableOffset)) {
-                    continue;
+        if (this._auth_session ?? false) {
+            _headers.Cookie = this._auth_session;
+        }
+
+        this._receive_window = 10000;
+        this._disable_auth0 = false;
+        this._rate_limited = false;
+
+        this.axios = axios.create({
+            baseURL: `https://${ENDPOINT}/`,
+            timeout: 10000,
+            headers: _headers,
+        });
+
+        this.account = new Account(this);
+        this.auction = new Auction(this);
+        this.auth = new Auth(this);
+        this.dns = new DNS(this);
+        this.domain = new Domain(this);
+        this.domains = new Domains(this);
+        this.fiat = new Fiat(this);
+        this.marketplace = new Marketplace(this);
+        this.ticker = new Ticker(this);
+        this.trade = new Trade(this);
+        this.user = new User(this);
+
+        this._auth0 = {
+            limit: -1,
+            reset: -1,
+            remaining: -1,
+            stack: 0,
+            now: () => Date.now(),
+        };
+
+        this.axios.interceptors.response.use(
+            (response) => {
+                if (
+                    this._rate_limited &&
+                    this._auth0.remaining < this._auth0.now()
+                ) {
+                    this._rate_limited = false;
+                }
+                // Monitor for rate limit
+                this._auth0.limit = response.headers['x-ratelimit-limit'];
+                this._auth0.reset = response.headers['x-ratelimit-reset'];
+                this._auth0.remaining =
+                    response.headers['x-ratelimit-remaining'];
+                return response;
+            },
+            (error) => {
+                const { status, headers } = error.response;
+
+                if (status === 429) {
+                    this._rate_limited = true;
                 }
 
-                URLPath += `${key}=${parameters[key]}&`;
-            }
+                this._auth0.limit = headers['x-ratelimit-limit'];
+                this._auth0.reset = headers['x-ratelimit-reset'];
+                this._auth0.remaining = headers['x-ratelimit-remaining'];
 
-            var API = disableApi ? '' : '/api';
-            var Version = disableVersion ? '/' : `/${VERSION}/`;
-            var Offset =
-                parameters.offset != undefined && !disableOffset
-                    ? `${method}/${parameters.offset}`
-                    : method;
-
-            if (method === '/') {
-                Offset = '';
-            }
-
-            var GetParams = httpmethod === 'GET' ? URLPath : '';
-            if (URLPath === '?') {
-                GetParams = '';
-            }
-            // Final URL structure
-            URLPath = `${API}${Version}${_interface}/${Offset}${GetParams}`;
-
-            if (URLPath.indexOf('{{domain}}') > -1) {
-                if (parameters.domain) {
-                    URLPath = URLPath.replace('{{domain}}', parameters.domain);
-                } else return rej(`Domain is required!`);
-            }
-
-            var data = JSON.stringify(
-                utils.excludeProperty(
-                    utils.excludeProperty(parameters, 'offset'),
-                    'domain',
-                ),
-            );
-
-            var Headers = {
-                Authorization: this._auth.key ?? undefined,
-                Cookie: this._auth.session ?? undefined,
-                ...((m, l) => {
-                    if (m != 'GET') {
-                        return {
-                            'Content-Type': 'application/json',
-                            'Content-Length': l,
-                        };
-                    }
-                    return {};
-                })(httpmethod, data.length),
-            };
-
-            Object.keys(Headers).forEach(
-                (key) => Headers[key] === undefined && delete Headers[key],
-            );
-
-            utils.getJSON(
-                {
-                    host: ENDPOINT,
-                    port: 443,
-                    path: ((method, path) => {
-                        if (method === 'GET') {
-                            return path;
-                        }
-                        return path.split('?')[0];
-                    })(httpmethod, URLPath),
-                    method: httpmethod,
-                    encoding: 'utf8',
-                    headers: {
-                        ...Headers,
-                    },
-                    data: data,
-                },
-                (err, status, result, respHeaders) => {
-                    if (err) {
-                        rej(err);
-                    }
-
-                    return res({
-                        data: result,
-                        status: status,
-                        rawheaders: respHeaders,
-                    });
-                },
-            );
-        });
+                return Promise.reject(error);
+            },
+        );
     }
 
-    Auth = {
-        Login: ({ Email, Password, Token = '' }) => {
-            return new Promise((resolve, reject) => {
-                this.Call(
-                    'auth',
-                    'local/account-login',
-                    'POST',
-                    { email: Email, password: Password, token: Token },
-                    true,
-                    true,
-                )
-                    .then(({ data, status, rawheaders }) => {
-                        if (rawheaders['set-cookie']) {
-                            for (var key in rawheaders['set-cookie']) {
-                                if (
-                                    rawheaders['set-cookie'][key].indexOf(
-                                        'namebase-main',
-                                    ) > -1
-                                ) {
-                                    this._auth.session =
-                                        rawheaders['set-cookie'][key].split(
-                                            ' ',
-                                        )[0];
-                                }
-                            }
-                        }
-                        resolve({
-                            data,
-                            status,
-                            rawheaders,
-                            session: this._auth.session,
-                        });
-                    })
-                    .catch((e) => reject(e));
-            });
-        },
+    get auth0_headers() {
+        return this._auth0;
+    }
 
-        Logout: () => {
-            return this.Call('auth', 'logout', 'POST', {}, true, true);
-        },
+    get auth0() {
+        return this._disable_auth0;
+    }
 
-        API: {
-            Keys: () => {
-                return this.Call('auth', 'keys', 'GET', {}, true, true);
-            },
+    /**
+     * Enable or disable Auth0 rate limit monitoring
+     * @param {boolean} disable
+     */
+    set auth0(toggle) {
+        this._disable_auth0 = !toggle;
+    }
 
-            Create: (name) => {
-                return this.Call('auth', 'key', 'POST', { name }, true, true);
-            },
+    get receive_window() {
+        return this._receive_window;
+    }
 
-            Delete: (AccessKey) => {
-                return this.Call(
-                    'auth',
-                    'key',
-                    'DELETE',
-                    { accessKey: AccessKey },
-                    true,
-                    true,
+    /**
+     * Set receive window for timed requests
+     * @param {number} ms Milliseconds
+     */
+    set receive_window(receive_window) {
+        this._receive_window = receive_window;
+    }
+
+    get enums() {
+        return Enums;
+    }
+
+    get session() {
+        return this._auth_session;
+    }
+
+    /**
+     * Set session cookie
+     * @param {string} session session cookie after 'namebase-main='
+     */
+    set session(session) {
+        this._auth_session = 'namebase-main=' + session;
+        this.axios.defaults.headers.Cookie = this._auth_session;
+    }
+
+    get auth_key() {
+        return this._auth_key;
+    }
+
+    /**
+     * Set authentication key
+     * @param {string} access_and_secret_key access and secret keys delimited by a colon
+     */
+    set auth_key(access_and_secret_key) {
+        this._auth_key =
+            'Basic ' + Buffer.from(access_and_secret_key).toString('base64');
+        this.axios.defaults.headers.Authorization = this._auth_key;
+    }
+
+    /**
+     * Send request to Namebase API
+     * @param {string} _interface URL Structure
+     * @param {string} method HTTP Method
+     * @param {object} payload Request Payload
+     * @param  {...any} args Extra arguments
+     * @returns {AxiosPromise} Axios Promise
+     */
+    request(_interface, method, payload = {}, ...args) {
+        if (
+            !this._disable_auth0 &&
+            this._auth0.remaining > -1 &&
+            this._auth0.reset > -1 &&
+            this._auth0.limit > -1
+        ) {
+            if (this._rate_limited) {
+                console.error(
+                    `namebasejs: [auth0] Rate limited until ${this._auth0.reset}`,
                 );
-            },
-        },
-    };
-
-    User = {
-        Self: () => {
-            return this.Call('user', '/', 'GET', {}, true);
-        },
-
-        Dashboard: () => {
-            throw new Error('Dashboard has been deprecated by Namebase');
-        },
-
-        Wallet: () => {
-            return this.Call('user', 'wallet', 'GET', {}, true);
-        },
-
-        DomainSummary: () => {
-            return this.Call('user', 'domains/summary', 'GET', {}, true);
-        },
-
-        Messages: () => {
-            return this.Call('user', 'messages', 'GET', {}, true);
-        },
-
-        ReferralStats: (limit = 10) => {
-            return this.Call(
-                'user',
-                `referral-stats/${limit}`,
-                'GET',
-                {},
-                true,
-            );
-        },
-
-        PendingHistory: () => {
-            return this.Call('user', 'pending-history', 'GET', {}, true);
-        },
-
-        Domains: (
-            { offset, sortKey, sortDirection, limit } = {
-                offset: 0,
-                sortKey: 'acquiredAt',
-                sortDirection: 'desc',
-                limit: 100,
-            },
-        ) => {
-            return this.Call(
-                'user',
-                'domains/not-listed',
-                'GET',
-                {
-                    offset,
-                    sortKey,
-                    sortDirection,
-                    limit,
-                },
-                true,
-            );
-        },
-
-        TransferredDomains: (
-            { offset, sortKey, sortDirection, limit } = {
-                offset: 0,
-                sortKey: 'acquiredAt',
-                sortDirection: 'desc',
-                limit: 100,
-            },
-        ) => {
-            return this.Call(
-                'user',
-                'domains/transferred',
-                'GET',
-                {
-                    offset,
-                    sortKey,
-                    sortDirection,
-                    limit,
-                },
-                true,
-            );
-        },
-
-        ListedDomains: (offset = 0, limit = 100) => {
-            return this.Call(
-                'user',
-                `domains/listed`,
-                'GET',
-                { offset, limit },
-                true,
-            );
-        },
-
-        MFA: () => {
-            return this.Call('user', 'mfa', 'GET', {}, true);
-        },
-
-        Offers: {
-            // Expected Reply
-            // { success: bool, totalCount: int, domains: obj }
-            Received: (
-                {
-                    offset = 0,
-                    sortKey = 'createdAt',
-                    sortDirection = 'desc',
-                } = {
-                    offset: 0,
-                    sortKey: 'createdAt',
-                    sortDirection: 'desc',
-                },
-            ) => {
-                return this.Call(
-                    'offers',
-                    'received',
-                    'GET',
-                    {
-                        offset,
-                        sortKey,
-                        sortDirection,
-                    },
-                    false,
-                    false,
-                    true,
-                );
-            },
-
-            Sent: (
-                {
-                    offset = 0,
-                    sortKey = 'createdAt',
-                    sortDirection = 'desc',
-                } = {
-                    offset: 0,
-                    sortKey: 'createdAt',
-                    sortDirection: 'desc',
-                },
-            ) => {
-                return this.Call(
-                    'offers',
-                    'sent',
-                    'GET',
-                    {
-                        offset,
-                        sortKey,
-                        sortDirection,
-                    },
-                    false,
-                    false,
-                    true,
-                );
-            },
-
-            Notification: () => {
-                return this.Call('offers', '/', 'GET', {});
-            },
-
-            Inbox: {
-                Received: () => {
-                    return this.Call('offers', 'inbox/received', 'GET', {});
-                },
-            },
-        },
-
-        Bids: {
-            Open: (offset = 0) => {
-                return this.Call('user', 'open-bids', 'GET', { offset }, true);
-            },
-
-            Lost: (offset = 0) => {
-                return this.Call('user', 'lost-bids', 'GET', { offset }, true);
-            },
-
-            Revealing: (offset = 0) => {
-                return this.Call(
-                    'user',
-                    'revealing-bids',
-                    'GET',
-                    { offset },
-                    true,
-                );
-            },
-        },
-    };
-
-    Account = {
-        Self: (
-            { receiveWindow = 10000, timestamp = new Date().getTime() } = {
-                receiveWindow: 10000,
-                timestamp: new Date().getTime(),
-            },
-        ) => {
-            return this.Call('account', '/', 'GET', {
-                receiveWindow,
-                timestamp,
-            });
-        },
-
-        Limits: (
-            { receiveWindow = 10000, timestamp = new Date().getTime() } = {
-                receiveWindow: 10000,
-                timestamp: new Date().getTime(),
-            },
-        ) => {
-            return this.Call('account', 'limits', 'GET', {
-                receiveWindow,
-                timestamp,
-            });
-        },
-
-        Log: (
-            { accountName = 'unlocked', limit = 10 } = {
-                accountName: 'unlocked',
-                limit: 10,
-            },
-        ) => {
-            return this.Call('account', 'log', 'GET', {
-                accountName,
-                limit,
-            });
-        },
-
-        Deposit: {
-            Address: (
-                {
-                    asset = 'HNS',
-                    timestamp = new Date().getTime(),
-                    receiveWindow = 10000,
-                } = {
-                    asset: 'HNS',
-                    timestamp: new Date().getTime(),
-                    receiveWindow: 10000,
-                },
-            ) => {
-                return this.Call('deposit', 'address', 'POST', {
-                    asset,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-            // Unsure if this is still an endpoint?
-            // Returns []
-            History: (
-                {
-                    asset = 'HNS',
-                    startTime,
-                    endTime,
-                    timestamp = new Date().getTime(),
-                    receiveWindow = 10000,
-                } = {
-                    asset: 'HNS',
-                    startTime: new Date().getTime() - 2592000000,
-                    endTime: new Date().getTime(),
-                    timestamp: new Date().getTime(),
-                    receiveWindow: 10000,
-                },
-            ) => {
-                return this.Call('deposit', 'history', 'GET', {
-                    asset,
-                    startTime,
-                    endTime,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-        },
-
-        Withdraw: {
-            Asset: (
-                {
-                    asset = 'HNS',
-                    address,
-                    amount,
-                    timestamp = new Date().getTime(),
-                    receiveWindow = 10000,
-                } = {
-                    asset: 'HNS',
-                    timestamp: new Date().getTime(),
-                    receiveWindow: 10000,
-                },
-            ) => {
-                return this.Call('withdraw', '/', 'POST', {
-                    asset,
-                    address,
-                    amount,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-
-            // Unsure if this is still an endpoint?
-            // Returns []
-            History: (
-                {
-                    asset = 'HNS',
-                    startTime,
-                    endTime,
-                    timestamp = new Date().getTime(),
-                    receiveWindow = 10000,
-                } = {
-                    asset: 'HNS',
-                    startTime: new Date().getTime() - 2592000000,
-                    endTime: new Date().getTime(),
-                    timestamp: new Date().getTime(),
-                    receiveWindow: 10000,
-                },
-            ) => {
-                return this.Call('withdraw', 'history', 'GET', {
-                    asset,
-                    startTime,
-                    endTime,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-        },
-    };
-
-    Auction = {
-        Bid: (domain, bid, blind) => {
-            return this.Call('auction', '{{domain}}/bid', 'POST', {
-                domain,
-                bidAmount: bid,
-                blindAmount: blind,
-            });
-        },
-    };
-
-    Marketplace = {
-        Domain: (domain) => {
-            return this.Call('marketplace', '{{domain}}', 'GET', {
-                domain,
-            });
-        },
-
-        History: (domain) => {
-            return this.Call('marketplace', '{{domain}}/history', 'GET', {
-                domain,
-            });
-        },
-
-        List: (domain, amount, description, asset = 'HNS') => {
-            return this.Call('marketplace', '{{domain}}', 'POST', {
-                domain,
-                amount,
-                description,
-                asset,
-            });
-        },
-
-        CancelListing: (domain) => {
-            return this.Call('marketplace', '{{domain}}/cancel', 'POST', {
-                domain,
-            });
-        },
-
-        BuyNow: (domain) => {
-            return this.Call('marketplace', '{{domain}}/buynow', 'POST', {
-                domain,
-            });
-        },
-
-        Bid: (domain, hnsAmount) => {
-            // 0.000000 hns
-            return this.Call('marketplace', '{{domain}}/bid', 'POST', {
-                domain,
-                buyOfferAmount: hnsAmount,
-            });
-        },
-    };
-
-    Trade = {
-        History: (
-            {
-                symbol = 'HNSBTC',
-                timestamp = new Date().getTime(),
-                receiveWindow = 10000,
-                limit = 30,
-            } = {
-                symbol: 'HNSBTC',
-                timestamp: new Date().getTime(),
-                receiveWindow: 10000,
-                limit: 30,
-            },
-        ) => {
-            return this.Call('trade', '/', 'GET', {
-                symbol,
-                timestamp,
-                receiveWindow,
-                limit,
-            });
-        },
-
-        Account: (
-            { timestamp = new Date().getTime(), receiveWindow = 10000 } = {
-                timestamp: new Date().getTime(),
-                receiveWindow: 10000,
-            },
-        ) => {
-            return this.Call('trade', 'account', 'GET', {
-                timestamp,
-                receiveWindow,
-            });
-        },
-
-        Depth: (
-            { symbol = 'HNSBTC', limit = 100 } = {
-                symbol: 'HNSBTC',
-                limit: 100,
-            },
-        ) => {
-            return this.Call('depth', '/', 'GET', {
-                symbol,
-                limit,
-            });
-        },
-
-        Order: {
-            Get: (
-                {
-                    symbol = 'HNSBTC',
-                    orderId,
-                    receiveWindow = 10000,
-                    timestamp = new Date().getTime(),
-                } = {
-                    symbol: 'HNSBTC',
-                    receiveWindow: 10000,
-                    timestamp: new Date().getTime(),
-                },
-            ) => {
-                return this.Call('trade', 'order', 'GET', {
-                    symbol,
-                    orderId,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-
-            New: (
-                {
-                    symbol = 'HNSBTC',
-                    side,
-                    type,
-                    quantity,
-                    price,
-                    timestamp = new Date().getTime(),
-                    receiveWindow = 10000,
-                } = {
-                    symbol: 'HNSBTC',
-                    receiveWindow: 10000,
-                    timestamp: new Date().getTime(),
-                },
-            ) => {
-                return this.Call('order', '/', 'POST', {
-                    symbol,
-                    side,
-                    type,
-                    quantity,
-                    price,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-
-            Delete: (
-                {
-                    symbol = 'HNSBTC',
-                    orderId,
-                    receiveWindow = 10000,
-                    timestamp = new Date().getTime(),
-                } = {
-                    symbol: 'HNSBTC',
-                    receiveWindow: 10000,
-                    timestamp: new Date().getTime(),
-                },
-            ) => {
-                return this.Call('order', '/', 'delete', {
-                    symbol,
-                    orderId,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-
-            Open: (
-                {
-                    symbol = 'HNSBTC',
-                    receiveWindow = 10000,
-                    timestamp = new Date().getTime(),
-                } = {
-                    symbol: 'HNSBTC',
-                    receiveWindow: 10000,
-                    timestamp: new Date().getTime(),
-                },
-            ) => {
-                return this.Call('order', 'open', 'GET', {
-                    symbol,
-                    orderId,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-
-            All: (
-                {
-                    symbol = 'HNSBTC',
-                    orderId,
-                    limit = 100,
-                    receiveWindow = 10000,
-                    timestamp = new Date().getTime(),
-                } = {
-                    limit: 100,
-                    symbol: 'HNSBTC',
-                    receiveWindow: 10000,
-                    timestamp: new Date().getTime(),
-                },
-            ) => {
-                return this.Call('order', 'all', 'GET', {
-                    symbol,
-                    orderId,
-                    limit,
-                    timestamp,
-                    receiveWindow,
-                });
-            },
-        },
-    };
-
-    DNS = {
-        Get: (domain) => {
-            return this.Call('dns', 'domains/{{domain}}', 'GET', {
-                domain,
-            });
-        },
-        // Record[] { ENUM type, STRING host, STRING value, INTEGER ttl }
-        Set: (domain, records) => {
-            return this.Call('dns', 'domains/{{domain}}', 'PUT', {
-                domain,
-                records,
-            });
-        },
-        // rawNameState needs to be HEX of the DNS records
-        AdvancedSet: (domain, rawNameState) => {
-            return this.Call('dns', 'domains/{{domain}}/advanced', 'PUT', {
-                domain,
-                rawNameState,
-            });
-        },
-
-        NameServers: (domain) => {
-            return this.Call('dns', 'domains/{{domain}}/nameserver', 'GET', {
-                domain,
-            });
-        },
-
-        SetNameServers: (domain, records, deleteRecords) => {
-            return this.Call('dns', 'domains/{{domain}}/nameserver', 'PUT', {
-                domain,
-                records,
-                deleteRecords,
-            });
-        },
-    };
-
-    Fiat = {
-        Transfers: () => {
-            return this.Call('fiat', 'ach/transfers', 'GET', {}, true);
-        },
-
-        Accounts: () => {
-            return this.Call('fiat', 'ach/accounts', 'GET', {}, true);
-        },
-    };
-
-    Ticker = {
-        Day: (symbol = 'HNSBTC') => {
-            return this.Call('ticker', 'day', 'GET', { symbol });
-        },
-
-        Book: (symbol = 'HNSBTC') => {
-            return this.Call('ticker', 'book', 'GET', { symbol });
-        },
-
-        Price: (symbol = 'HNSBTC') => {
-            return this.Call('ticker', 'price', 'GET', { symbol });
-        },
-
-        Supply: (asset = 'HNS') => {
-            return this.Call('ticker', 'supply', 'GET', { asset });
-        },
-
-        Klines: (
-            {
-                symbol = 'HNSBTC',
-                interval = '5m',
-                startTime,
-                endTime,
-                limit = 100,
-            } = {
-                symbol: 'HNSBTC',
-                startTime: new Date().getTime() - 1000 * 60 * 60 * 24,
-                endTime: new Date().getTime(),
-                interval: '5m',
-                limit: 100,
-            },
-        ) => {
-            return this.Call('ticker', 'klines', 'GET', {
-                symbol,
-                interval,
-                startTime,
-                endTime,
-                limit,
-            });
-        },
-    };
-
-    Domains = {
-        Popular: (offset = 0) => {
-            return this.Call('domains', 'popular', 'GET', { offset }, true);
-        },
-
-        RecentlyWon: (offset = 0) => {
-            return this.Call(
-                'domains',
-                'recently-won',
-                'GET',
-                { offset },
-                true,
-            );
-        },
-
-        EndingSoon: (offset = 0) => {
-            return this.Call('domains', 'ending-soon', 'GET', { offset }, true);
-        },
-
-        Anticipated: (offset = 0) => {
-            throw new Error('Deprecated - Nolonger any domains in this list');
-            // return this.Call('domains', 'anticipated', 'GET', { offset }, true);
-        },
-
-        Sold: (offset = 0, sortKey = 'date', sortDirection = 'desc') => {
-            return this.Call(
-                'domains',
-                `sold`,
-                'GET',
-                { offset, sortKey, sortDirection },
-                true,
-            );
-        },
-
-        Marketplace: (
-            offset = 0,
-            sortKey = 'bid',
-            sortDirection = 'desc',
-            onlyPuny = false,
-            onlyIdnaPuny = false,
-            onlyAlternativePuny = false,
-            ...moreArgs
-        ) => {
-            return this.Call(
-                'domains',
-                'marketplace',
-                'GET',
-                {
-                    offset,
-                    sortKey,
-                    sortDirection,
-                    onlyPuny,
-                    onlyIdnaPuny,
-                    onlyAlternativePuny,
-                    ...moreArgs,
-                },
-                true,
-            );
-        },
-    };
-
-    Gift(recipientEmail, senderName, note) {
-        return {
-            SLD: (domain) => {
-                if (!domain.includes('.')) {
-                    throw new Error(
-                        'Domain must include an owned TLD, and SLD, e.g. SLD.TLD',
+                return Promise.reject('RATE_LIMITED');
+            } else {
+                if (
+                    this._auth0.limit - this._auth0.remaining <
+                    this._auth0.limit / 2
+                ) {
+                    console.warn(
+                        `namebasejs: [auth0] Reaching rate limit, ${this._auth0.remaining} requests remaining of ${this._auth0.limit}`,
                     );
                 }
 
-                return this.Call(
-                    'gift',
-                    domain,
-                    'POST',
-                    {
-                        recipientEmail,
-                        senderName,
-                        note,
-                    },
-                    true,
-                    false,
-                    true,
-                );
-            },
-            TLD: (tld) => {
-                // unconfirmed
-                if (domain.includes('.')) {
-                    throw new Error("TLD musn't include an SLD, e.g. TLD");
+                if (
+                    this._auth0.remaining < 1 &&
+                    this._auth0.reset > this._auth0.now()
+                ) {
+                    this._rate_limited = true;
+                    console.error(
+                        `namebasejs: [auth0] Rate limited until ${this._auth0.reset}`,
+                    );
+
+                    if (this._auth0.stack + 1 <= this._auth0.limit) {
+                        return new Promise((resolve, reject) => {
+                            setTimeout(() => {
+                                this.request(
+                                    _interface,
+                                    method,
+                                    payload,
+                                    ...args,
+                                )
+                                    .then(resolve)
+                                    .catch(reject);
+                            }, this._auth0.reset - this._auth0.now());
+                        });
+                    } else {
+                        // this is returned when we can't wait for the rate limit to reset
+                        // aka - we'll be perpretually restricted if we stack too many requests
+                        return Promise.reject('RATE_LIMIT_MAX_STACK');
+                    }
                 }
+            }
+        }
 
-                return this.Call(
-                    'gift',
-                    tld,
-                    'POST',
-                    {
-                        recipientEmail,
-                        senderName,
-                        note,
-                    },
-                    true,
-                    false,
-                    true,
-                );
-            },
+        let _url = _interface;
+
+        method = method.toUpperCase();
+
+        if (method == 'GET') {
+            _url += '?';
+
+            Object.keys(payload).forEach((key) => {
+                if (key === 'domain' || key === 'offset') return;
+                _url += `${key}=${payload[key]}&`;
+            });
+        }
+
+        const repl = {
+            '{{domain}}': payload.domain,
+            '{{offset}}': payload.offset,
+            '{{version}}': VERSION,
         };
+
+        Object.keys(repl).forEach((key) => {
+            _url = _url.replace(key, repl[key]);
+        });
+
+        delete payload.offset;
+        delete payload.domain;
+
+        return this.axios({
+            method: method,
+            url: _url,
+            data: method !== 'GET' ? payload : undefined,
+            ...args,
+        });
     }
 
-    Domain(domain) {
-        return this.Call('domains', 'get/{{domain}}', 'GET', { domain }, true);
-    }
-    // Toggles
-    WatchDomain(domain) {
-        return this.Call(
-            'domains',
-            'watch/{{domain}}',
-            'POST',
-            { domain },
-            true,
+    /**
+     * Timed request to Namebase API
+     * @param {string} _interface URL Structure
+     * @param {string} method HTTP Method
+     * @param {object} payload Request Payload
+     * @param  {...any} args Extra arguments
+     * @returns {AxiosPromise} Axios Promise
+     */
+    timedRequest(_interface, method, payload = {}, ...args) {
+        return this.request(
+            _interface,
+            method,
+            {
+                ...payload,
+                timestamp: new Date().getTime(),
+                receiveWindow: this._receive_window,
+            },
+            ...args,
         );
     }
 }
-
-module.exports = NameBase;
