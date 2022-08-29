@@ -4,10 +4,8 @@
 // Without these filled out, most tests will fail, other than public endpoints.
 import NameBase from './namebasejs/index.js';
 
-const namebasejs = new NameBase({
+export default new NameBase({
     session: '', // Expects a valid session cookie
     aKey: false, // sKey is also needed, expects string
     sKey: false, // aKey is also needed, expects string
 });
-
-export default namebasejs;
