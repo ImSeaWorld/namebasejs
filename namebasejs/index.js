@@ -58,6 +58,8 @@ export default class NameBaseJS {
         }
 
         this._receive_window = 10000;
+        this._disable_auth0 = false;
+        this._rate_limited = false;
 
         this.axios = axios.create({
             baseURL: `https://${ENDPOINT}/`,
@@ -76,6 +78,60 @@ export default class NameBaseJS {
         this.ticker = new Ticker(this);
         this.trade = new Trade(this);
         this.user = new User(this);
+
+        this._auth0 = {
+            limit: -1,
+            reset: -1,
+            remaining: -1,
+            stack: 0,
+            now: () => Date.now(),
+        };
+
+        this.axios.interceptors.response.use(
+            (response) => {
+                if (
+                    this._rate_limited &&
+                    this._auth0.remaining < this._auth0.now()
+                ) {
+                    this._rate_limited = false;
+                }
+                // Monitor for rate limit
+                this._auth0.limit = response.headers['x-ratelimit-limit'];
+                this._auth0.reset = response.headers['x-ratelimit-reset'];
+                this._auth0.remaining =
+                    response.headers['x-ratelimit-remaining'];
+                return response;
+            },
+            (error) => {
+                const { status, headers } = error.response;
+
+                if (status === 429) {
+                    this._rate_limited = true;
+                }
+
+                this._auth0.limit = headers['x-ratelimit-limit'];
+                this._auth0.reset = headers['x-ratelimit-reset'];
+                this._auth0.remaining = headers['x-ratelimit-remaining'];
+
+                return Promise.reject(error);
+            },
+        );
+    }
+
+    get auth0_headers() {
+        return this._auth0;
+    }
+
+    get auth0() {
+        return this._disable_auth0;
+    }
+
+    /**
+     * Enable or disable Auth0 rate limit monitoring
+     * @param {boolean} disable
+     */
+    set auth0(toggle) {
+        this._disable_auth0 = !toggle;
     }
 
     get receive_window() {
@@ -130,6 +186,58 @@ export default class NameBaseJS {
      * @returns {AxiosPromise} Axios Promise
      */
     request(_interface, method, payload = {}, ...args) {
+        if (
+            !this._disable_auth0 &&
+            this._auth0.remaining > -1 &&
+            this._auth0.reset > -1 &&
+            this._auth0.limit > -1
+        ) {
+            if (this._rate_limited) {
+                console.error(
+                    `namebasejs: [auth0] Rate limited until ${this._auth0.reset}`,
+                );
+                return Promise.reject('RATE_LIMITED');
+            } else {
+                if (
+                    this._auth0.limit - this._auth0.remaining <
+                    this._auth0.limit / 2
+                ) {
+                    console.warn(
+                        `namebasejs: [auth0] Reaching rate limit, ${this._auth0.remaining} requests remaining of ${this._auth0.limit}`,
+                    );
+                }
+
+                if (
+                    this._auth0.remaining < 1 &&
+                    this._auth0.reset > this._auth0.now()
+                ) {
+                    this._rate_limited = true;
+                    console.error(
+                        `namebasejs: [auth0] Rate limited until ${this._auth0.reset}`,
+                    );
+
+                    if (this._auth0.stack + 1 <= this._auth0.limit) {
+                        return new Promise((resolve, reject) => {
+                            setTimeout(() => {
+                                this.request(
+                                    _interface,
+                                    method,
+                                    payload,
+                                    ...args,
+                                )
+                                    .then(resolve)
+                                    .catch(reject);
+                            }, this._auth0.reset - this._auth0.now());
+                        });
+                    } else {
+                        // this is returned when we can't wait for the rate limit to reset
+                        // aka - we'll be perpretually restricted if we stack too many requests
+                        return Promise.reject('RATE_LIMIT_MAX_STACK');
+                    }
+                }
+            }
+        }
+
         let _url = _interface;
 
         method = method.toUpperCase();
