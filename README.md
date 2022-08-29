@@ -10,7 +10,7 @@ npm install namebasejs --save
 
 This wrapper covers up to 90% of the visible endpoints on namebase currently. Submit an issue or PR to fill in the ones I'm missing.
 
-You can get your session from the network tab of Inspect Element under `namebase-main`. Copy everything after the `=`. Although, you don't need to instantiate `namebasejs` with a session, you can also use the local login which will store the session from your login in `_auth_session`.
+You can get your session from the network tab of Inspect Element under `namebase-main`. Copy everything after the `=`. Although, you don't need to instantiate `namebasejs` with a session, you can also use the local login which will store the session from your login in `_auth_session` which can be gotten from the api `namebasejs.session` at any time.
 
 _NOTE:_ Currently NameBase is returning `auth0` headers to prevent you from using their API too frequently. 
 
