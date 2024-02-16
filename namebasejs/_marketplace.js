@@ -17,7 +17,7 @@ export default class Marketplace {
      */
     list(domain, amount, description, asset = 'HNS') {
         return this.nb.request(
-            'api/{{version}}/marketplace/{{domain}}',
+            'api/{{version}}/marketplace/{{domain}}/list',
             'POST',
             {
                 domain,
